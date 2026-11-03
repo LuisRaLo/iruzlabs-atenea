@@ -8,6 +8,11 @@ import { createSource } from './sources.js'
 
 const THEME_KEYS = ['bg', 'sidebar', 'bubble', 'card', 'text', 'user', 'userText', 'accent']
 const THEMES = {
+  atenea: {
+    label: 'Atenea',
+    light: { bg: '#f8fafc', sidebar: '#e6f7ff', bubble: '#ebf4fa', card: '#ffffff', text: '#1a2a3a', user: '#0a4a6a', userText: '#ffffff', accent: '#0891b2' },
+    dark: { bg: '#0d1620', sidebar: '#121e2c', bubble: '#1a2a3a', card: '#152332', text: '#e6f7ff', user: '#0891b2', userText: '#ffffff', accent: '#00c8ff' },
+  },
   deepseek: {
     label: 'DeepSeek',
     light: { bg: '#fcfcfc', sidebar: '#f7f7f7', bubble: '#eeeeee', card: '#ffffff', text: '#141414', user: '#070707', userText: '#fcfcfc', accent: '#4d6bfe' },

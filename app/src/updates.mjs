@@ -3,7 +3,7 @@
 // start/text.mjs.
 
 const CHECK_EVERY_MS = 4 * 60 * 60_000
-export const RELEASES_URL = 'https://api.github.com/repos/Fei2411/DS-Bot/releases?per_page=20'
+export const RELEASES_URL = 'https://api.github.com/repos/atene-ai/iruzlabs-atenea/releases?per_page=20'
 
 function parseVersion(version) {
   if (typeof version !== 'string') return null

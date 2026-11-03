@@ -79,8 +79,8 @@ function WidthSlider({ label, value, save }) {
 function GeneralPage({ roster, actions, run }) {
   const prefs = roster.prefs ?? {}
   const themes = allThemes()
-  const current = themes[prefs.theme] ? prefs.theme : 'deepseek'
-  const [custom, setCustom] = useState(prefs.accent ?? '#4d6bfe')
+  const current = themes[prefs.theme] ? prefs.theme : 'atenea'
+  const [custom, setCustom] = useState(prefs.accent ?? INKS.iruz[0])
   const timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
   const pickCustom = (value) => {

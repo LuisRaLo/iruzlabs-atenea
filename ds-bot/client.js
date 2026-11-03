@@ -586,6 +586,18 @@ var ZH = {
   "{n} h": "{n} 小时",
   "{n} d": "{n} 天",
   // Plugin updates
+  "Atenea {version} is available": "Atenea {version} 可以更新",
+  "Updating Atenea…": "正在更新 Atenea…",
+  "Atenea {version} is installed. Restart DSH to use it.": "Atenea {version} 已安装，重启 DSH 后生效",
+  "Atenea {version} is installed.": "Atenea {version} 已安装。",
+  "Atenea update": "Atenea 更新",
+  "Atenea {version}": "Atenea {version}",
+  "Restart DSH to start using Atenea {version}.": "重启 DSH 后开始使用 Atenea {version}。",
+  "Update Atenea {version} first.": "先更新 Atenea {version}。",
+  "Updates come with the Atenea app.": "随 Atenea 应用一起更新。",
+  Atenea: "Atenea",
+  "Star Atenea on GitHub": "在 GitHub 上给 Atenea 点 Star",
+  "If Atenea helps you, a star on GitHub helps more people find it.": "如果 Atenea 对你有用，欢迎在 GitHub 上点个 Star，让更多人看到它。",
   "DS Bot {version} is available": "DS Bot {version} 可以更新",
   "Updating DS Bot…": "正在更新 DS Bot…",
   "DS Bot {version} is installed. Restart DSH to use it.": "DS Bot {version} 已安装，重启 DSH 后生效",
@@ -1470,6 +1482,8 @@ var call = async (endpoint, payload, signal) => {
 
 // src/client/inks.js
 var INKS = {
+  iruz: ["#0891B2", "#00C8FF"],
+  atenea: ["#00C8FF", "#0891B2"],
   deepseek: ["#4D6BFE", "#6A84FF"],
   charcoal: ["#141416", "#F1F2F4"],
   graphite: ["#2D2D2D", "#D6D6DA"],
@@ -1490,8 +1504,11 @@ var INKS = {
   gray: ["#8A8F98", "#6E737B"],
   aurora: ["#00B8D4", "#2EE6E0"]
 };
-var GRADIENTS = { aurora: [[0, "#A4FFB0"], [0.42, "#00F0E4"], [1, "#2E9EF7"]] };
-var ACCENT_INKS = ["deepseek", "charcoal", "graphite", "rose", "sky", "tangerine", "cobalt"];
+var GRADIENTS = {
+  iruz: [[0, "#00C8FF"], [0.5, "#0891B2"], [1, "#0A4A6A"]],
+  aurora: [[0, "#A4FFB0"], [0.42, "#00F0E4"], [1, "#2E9EF7"]]
+};
+var ACCENT_INKS = ["iruz", "atenea", "deepseek", "charcoal", "graphite", "rose", "sky", "tangerine", "cobalt"];
 var LEGACY_INKS = { kimi: "charcoal", zai: "graphite", minimax: "rose", stepfun: "sky", mimo: "tangerine", qwen: "cobalt" };
 var isHex = (color) => typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color);
 var luminance = (hex) => [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16) / 255).map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4).reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
@@ -1528,7 +1545,7 @@ var PICKER_COLUMNS = 5;
 var DEFAULT_SHAPES = ["star", "moon", "gumdrop", "peanut", "bunny", "kitty", "acorn"];
 var FALLBACK_SHAPE = "gumdrop";
 var MAIN_LOOK = Object.freeze({ shape: "whale", color: "deepseek" });
-var CHARACTER_COLORS = ["black", "brown", "red", "orange", "yellow", "green", "cyan", "blue", "violet", "magenta", "gray", "aurora"];
+var CHARACTER_COLORS = ["iruz", "atenea", "black", "brown", "red", "orange", "yellow", "green", "cyan", "blue", "violet", "magenta", "gray", "aurora"];
 var DEFAULT_COLORS = CHARACTER_COLORS.filter((color) => !["black", "gray", "brown"].includes(color) && !GRADIENTS[color]);
 var isColor = (color) => isHex(color) || Object.hasOwn(INKS, color);
 function fnv1a(text) {
@@ -1907,6 +1924,11 @@ function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards
 // src/client/themes.js
 var THEME_KEYS = ["bg", "sidebar", "bubble", "card", "text", "user", "userText", "accent"];
 var THEMES = {
+  atenea: {
+    label: "Atenea",
+    light: { bg: "#f8fafc", sidebar: "#e6f7ff", bubble: "#ebf4fa", card: "#ffffff", text: "#1a2a3a", user: "#0a4a6a", userText: "#ffffff", accent: "#0891b2" },
+    dark: { bg: "#0d1620", sidebar: "#121e2c", bubble: "#1a2a3a", card: "#152332", text: "#e6f7ff", user: "#0891b2", userText: "#ffffff", accent: "#00c8ff" }
+  },
   deepseek: {
     label: "DeepSeek",
     light: { bg: "#fcfcfc", sidebar: "#f7f7f7", bubble: "#eeeeee", card: "#ffffff", text: "#141414", user: "#070707", userText: "#fcfcfc", accent: "#4d6bfe" },
@@ -10673,10 +10695,10 @@ function UpdateButton({ useUpdate, actions }) {
     setDshError("");
     void actions.installDshUpdate().catch((failure) => setDshError(hostText(failure?.message ?? String(failure))));
   };
-  const label = phase === "installing" ? t("Updating DS Bot…") : dshPhase === "installing" ? t("Updating DSH…") : phase === "installed" ? t("DS Bot {version} is installed. Restart DSH to use it.", { version: update.installed ?? update.latest }) : phase === "updated" ? t("DS Bot {version} is installed.", { version: update.installed ?? update.latest }) : dshPhase === "installed" ? t("Restart DSH to start using DSH {version}.", { version: dsh.installed ?? dsh.verified }) : update?.available ? t("DS Bot {version} is available", { version: update.latest }) : t("DSH {version} is available", { version: dsh?.verified });
+  const label = phase === "installing" ? t("Updating Atenea…") : dshPhase === "installing" ? t("Updating DSH…") : phase === "installed" ? t("Atenea {version} is installed. Restart DSH to use it.", { version: update.installed ?? update.latest }) : phase === "updated" ? t("Atenea {version} is installed.", { version: update.installed ?? update.latest }) : dshPhase === "installed" ? t("Restart DSH to start using DSH {version}.", { version: dsh.installed ?? dsh.verified }) : update?.available ? t("Atenea {version} is available", { version: update.latest }) : t("DSH {version} is available", { version: dsh?.verified });
   const message = error || (phase === "failed" ? update.error : "");
   const dshMessage = dshError || (dshPhase === "failed" ? dsh?.error : "");
-  const dshText = dshPhase === "installed" ? t("Restart DSH to start using DSH {version}.", { version: dsh.installed ?? dsh.verified }) : dsh?.available === false && dsh?.blockedBy ? t("Update DS Bot {version} first.", { version: dsh.blockedBy }) : t("You have {version}.", { version: dsh?.current });
+  const dshText = dshPhase === "installed" ? t("Restart DSH to start using DSH {version}.", { version: dsh.installed ?? dsh.verified }) : dsh?.available === false && dsh?.blockedBy ? t("Update Atenea {version} first.", { version: dsh.blockedBy }) : t("You have {version}.", { version: dsh?.current });
   return (0, import_react21.createElement)(
     import_react21.Fragment,
     null,
@@ -10693,12 +10715,12 @@ function UpdateButton({ useUpdate, actions }) {
     }, (0, import_react21.createElement)(CloudDownloadIcon, { done: phase === "installed" || phase === "updated" }), phase === "failed" || dshPhase === "failed" ? (0, import_react21.createElement)("span", { className: "bt-update-dot", "aria-hidden": true }) : null),
     open && box ? (0, import_react_dom3.createPortal)((0, import_react21.createElement)(
       "div",
-      { className: "bt-update-pop", role: "dialog", "aria-label": update?.available || phase !== "idle" ? t("DS Bot update") : t("DSH update"), style: box },
+      { className: "bt-update-pop", role: "dialog", "aria-label": update?.available || phase !== "idle" ? t("Atenea update") : t("DSH update"), style: box },
       update?.available || phase !== "idle" ? (0, import_react21.createElement)(
         import_react21.Fragment,
         null,
-        (0, import_react21.createElement)("div", { className: "bt-update-title" }, phase === "installed" || phase === "updated" ? t("Update installed") : t("DS Bot {version}", { version: update.latest })),
-        (0, import_react21.createElement)("div", { className: "bt-update-text" }, phase === "installed" ? t("Restart DSH to start using DS Bot {version}.", { version: update.installed ?? update.latest }) : phase === "updated" ? t("DS Bot {version} is installed.", { version: update.installed ?? update.latest }) : t("You have {version}.", { version: update.current })),
+        (0, import_react21.createElement)("div", { className: "bt-update-title" }, phase === "installed" || phase === "updated" ? t("Update installed") : t("Atenea {version}", { version: update.latest })),
+        (0, import_react21.createElement)("div", { className: "bt-update-text" }, phase === "installed" ? t("Restart DSH to start using Atenea {version}.", { version: update.installed ?? update.latest }) : phase === "updated" ? t("Atenea {version} is installed.", { version: update.installed ?? update.latest }) : t("You have {version}.", { version: update.current })),
         message ? (0, import_react21.createElement)("div", { className: "bt-update-error", role: "alert" }, t("The update did not finish: {reason}", { reason: message })) : null,
         (0, import_react21.createElement)(
           "div",
@@ -11023,9 +11045,9 @@ function BotReturn({ wide, useSurface, useRoster, actions }) {
   if (mode !== "agent") return null;
   return (0, import_react21.createElement)(
     "button",
-    { type: "button", className: "bt-return", "aria-label": t("DS Bot"), title: t("DS Bot"), onClick: () => actions.setSurface("bot") },
+    { type: "button", className: "bt-return", "aria-label": t("Atenea"), title: t("Atenea"), onClick: () => actions.setSurface("bot") },
     (0, import_react21.createElement)(BotMark, { look: MAIN_LOOK, size: 20 }),
-    wide ? (0, import_react21.createElement)("span", { className: "bt-return-name" }, t("DS Bot")) : null
+    wide ? (0, import_react21.createElement)("span", { className: "bt-return-name" }, t("Atenea")) : null
   );
 }
 var RETURN_CSS = `
@@ -11042,7 +11064,7 @@ function BrandMark({ size = 24 }) {
   return (0, import_react21.createElement)("span", { className: "bt-brand-whale" }, (0, import_react21.createElement)(BotMark, { look: MAIN_LOOK, size }));
 }
 function BrandName() {
-  return (0, import_react21.createElement)("span", { style: { fontWeight: 600, fontSize: 14 } }, "DS Bot");
+  return (0, import_react21.createElement)("span", { style: { fontWeight: 600, fontSize: 14 } }, "Atenea");
 }
 var SIDEBAR_CSS = `
 .bt-confirm{width:260px;max-width:72vw;padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px}
@@ -17530,12 +17552,12 @@ var import_react45 = require("react");
 var CHEER_MS = 1800;
 var starCount = (count) => new Intl.NumberFormat(dateLocale(), { notation: "compact", maximumFractionDigits: 1 }).format(count);
 function botHint(update) {
-  if (update.phase === "installing") return t("Updating DS Bot…");
-  if (update.phase === "installed") return t("Restart DSH to start using DS Bot {version}.", { version: update.installed ?? update.latest });
-  if (update.phase === "updated") return t("DS Bot {version} is installed.", { version: update.installed ?? update.latest });
+  if (update.phase === "installing") return t("Updating Atenea…");
+  if (update.phase === "installed") return t("Restart DSH to start using Atenea {version}.", { version: update.installed ?? update.latest });
+  if (update.phase === "updated") return t("Atenea {version} is installed.", { version: update.installed ?? update.latest });
   if (update.phase === "failed") return t("The update did not finish: {reason}", { reason: hostText(update.error ?? "") });
-  if (update.available) return t("DS Bot {version} is available", { version: update.latest });
-  if (update.source === "app") return t("Updates come with the DS Bot app.");
+  if (update.available) return t("Atenea {version} is available", { version: update.latest });
+  if (update.source === "app") return t("Updates come with the Atenea app.");
   if (update.enabled === false) return t("Update checks are off.");
   if (update.source === "path") return t("Installed from a local folder; update it there.");
   if (!update.checkedAt) return null;
@@ -17629,7 +17651,7 @@ function AboutPage({ useUpdate, actions, run: run2, Section, Row: Row3 }) {
       (0, import_react45.createElement)(
         "div",
         { className: "bt-about-copy" },
-        (0, import_react45.createElement)("span", { className: "bt-about-name" }, "DS Bot"),
+        (0, import_react45.createElement)("span", { className: "bt-about-name" }, "Atenea by Iruz Labs"),
         update.current ? (0, import_react45.createElement)("span", { className: "bt-about-version" }, t("Version {version}", { version: update.current })) : null
       ),
       repo ? (0, import_react45.createElement)(
@@ -17639,18 +17661,18 @@ function AboutPage({ useUpdate, actions, run: run2, Section, Row: Row3 }) {
           href: repo,
           target: "_blank",
           rel: "noopener noreferrer",
-          title: t("Star DS Bot on GitHub"),
-          "aria-label": stars === null ? t("Star DS Bot on GitHub") : `${t("Star DS Bot on GitHub")} · ${t("{count} stars", { count: stars })}`
+          title: t("Star Atenea on GitHub"),
+          "aria-label": stars === null ? t("Star Atenea on GitHub") : `${t("Star Atenea on GitHub")} · ${t("{count} stars", { count: stars })}`
         },
         (0, import_react45.createElement)("span", { className: "bt-star-main" }, (0, import_react45.createElement)("span", { className: "bt-star-icon" }, (0, import_react45.createElement)(StarLineIcon)), "Star"),
         stars === null ? null : (0, import_react45.createElement)("span", { className: "bt-star-count" }, starCount(stars))
       ) : null
     ),
-    repo ? (0, import_react45.createElement)("p", { key: "ask", className: "bt-about-ask" }, t("If DS Bot helps you, a star on GitHub helps more people find it.")) : null,
+    repo ? (0, import_react45.createElement)("p", { key: "ask", className: "bt-about-ask" }, t("If Atenea helps you, a star on GitHub helps more people find it.")) : null,
     (0, import_react45.createElement)(
       Section,
       { key: "updates", title: t("Updates") },
-      (0, import_react45.createElement)(Row3, { label: "DS Bot", hint: ownRow?.hint ?? botHint(update) }, botControl, update.available && update.notesUrl ? (0, import_react45.createElement)("a", linkProps(update.notesUrl), t("What's new")) : null),
+      (0, import_react45.createElement)(Row3, { label: "Atenea", hint: ownRow?.hint ?? botHint(update) }, botControl, update.available && update.notesUrl ? (0, import_react45.createElement)("a", linkProps(update.notesUrl), t("What's new")) : null),
       dsh?.current ? (0, import_react45.createElement)(Row3, { label: "DeepSeek Harness", hint: dshHint(dsh, dshShown) }, dshControl) : null
     ),
     (0, import_react45.createElement)(
@@ -18029,8 +18051,8 @@ function WidthSlider({ label, value, save }) {
 function GeneralPage({ roster, actions, run: run2 }) {
   const prefs = roster.prefs ?? {};
   const themes = allThemes();
-  const current = themes[prefs.theme] ? prefs.theme : "deepseek";
-  const [custom, setCustom] = (0, import_react47.useState)(prefs.accent ?? "#4d6bfe");
+  const current = themes[prefs.theme] ? prefs.theme : "atenea";
+  const [custom, setCustom] = (0, import_react47.useState)(prefs.accent ?? INKS.iruz[0]);
   const timer = (0, import_react47.useRef)(0);
   (0, import_react47.useEffect)(() => () => clearTimeout(timer.current), []);
   const pickCustom = (value) => {
@@ -22004,7 +22026,7 @@ function apply(ctx) {
       const snapshot = roster.getSnapshot();
       const prefs = snapshot.ready ? snapshot.prefs ?? {} : savedPrefs;
       const themes = allThemes();
-      const id = themes[prefs.theme] ? prefs.theme : "deepseek";
+      const id = themes[prefs.theme] ? prefs.theme : "atenea";
       const accent = isHex(prefs.accent) ? prefs.accent : void 0;
       const motion = prefs.motion === "quiet" || prefs.motion === "lively" ? prefs.motion : "normal";
       const layout = layoutOf(prefs);

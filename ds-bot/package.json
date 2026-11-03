@@ -1,7 +1,7 @@
 {
   "name": "ds-bot",
   "version": "0.2.6",
-  "description": "DS Bot: a team of long-lived Bots for DeepSeek Harness, with Main Bots, Bot-to-Bot messages and group chats",
+  "description": "Atenea by Iruz Labs: a team of long-lived Bots for DeepSeek Harness, with Main Bots, Bot-to-Bot messages and group chats",
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
@@ -9,15 +9,17 @@
     "deepseek",
     "bot",
     "multi-agent",
-    "agents"
+    "agents",
+    "atenea",
+    "iruz-labs"
   ],
-  "homepage": "https://github.com/Fei2411/DS-Bot#readme",
+  "homepage": "https://github.com/atene-ai/iruzlabs-atenea#readme",
   "bugs": {
-    "url": "https://github.com/Fei2411/DS-Bot/issues"
+    "url": "https://github.com/atene-ai/iruzlabs-atenea/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Fei2411/DS-Bot.git",
+    "url": "git+https://github.com/atene-ai/iruzlabs-atenea.git",
     "directory": "ds-bot"
   },
   "license": "Apache-2.0",

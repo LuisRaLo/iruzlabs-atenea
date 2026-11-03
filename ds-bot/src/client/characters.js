@@ -39,7 +39,7 @@ export const FALLBACK_SHAPE = 'gumdrop'
 export const MAIN_LOOK = Object.freeze({ shape: 'whale', color: 'deepseek' })
 // Character colors in picker order. Black, the gradients, and the dull gray and brown
 // are never defaults; the user must pick them.
-export const CHARACTER_COLORS = ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta', 'gray', 'aurora']
+export const CHARACTER_COLORS = ['iruz', 'atenea', 'black', 'brown', 'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta', 'gray', 'aurora']
 export const DEFAULT_COLORS = CHARACTER_COLORS.filter(color => !['black', 'gray', 'brown'].includes(color) && !GRADIENTS[color])
 export const isColor = color => isHex(color) || Object.hasOwn(INKS, color)
 

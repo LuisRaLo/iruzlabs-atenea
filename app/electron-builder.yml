@@ -1,7 +1,7 @@
-appId: io.github.fei2411.dsbot
-productName: DS Bot
-copyright: Copyright 2026 Fei2411 and the DS Bot contributors
-artifactName: DS-Bot-${version}-${os}-${arch}.${ext}
+appId: ai.atene.iruzlabs
+productName: Atenea
+copyright: Copyright 2026 Iruz Labs and the Atenea contributors
+artifactName: Atenea-${version}-${os}-${arch}.${ext}
 directories:
   output: dist-pack
 files:
@@ -64,7 +64,7 @@ mac:
   # Without this key macOS registers no Local Network entry for the app and
   # blocks LAN connections from tool processes outright ("No route to host").
   extendInfo:
-    NSLocalNetworkUsageDescription: DS Bot runs commands that connect to devices on your local network.
+    NSLocalNetworkUsageDescription: Atenea runs commands that connect to devices on your local network.
 linux:
   # The Linux Host uses the payload's plain Node, which cannot read asar archives.
   asar: false
@@ -77,20 +77,20 @@ linux:
       arch: [x64]
   # The binary and the deb's menu entry take this name; productName has a space, which a
   # terminal command should not have.
-  executableName: dsbot
+  executableName: atenea
   # A deb needs a maintainer; package.json's author has no email, so it goes here.
-  maintainer: Fei2411 <https://github.com/Fei2411>
+  maintainer: Iruz Labs <https://github.com/atene-ai>
   # Links the running window to the menu entry (WM_CLASS = app id).
   syncDesktopName: true
   icon: assets/icon.png
   category: Utility
 # Let apt replace the legacy deb instead of leaving two installed applications.
 deb:
-  fpm: ['--replaces', 'deepseek-bot', '--conflicts', 'deepseek-bot'] # legacy package
+  fpm: ['--replaces', 'dsbot', '--conflicts', 'dsbot'] # legacy package
 # Where the installed app looks for updates (app-update.yml in the package). The build writes
 # latest.yml beside the installer; the release workflow attaches both to the GitHub release,
 # so the build itself never publishes (--publish never).
 publish:
   provider: github
-  owner: Fei2411
-  repo: DS-Bot
+  owner: atene-ai
+  repo: iruzlabs-atenea
