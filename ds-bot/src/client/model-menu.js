@@ -1,4 +1,4 @@
-import { createElement as h, Fragment, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createElement as h, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { currentPart } from './text.js'
 import { CheckIcon, SlidersIcon } from './icons.js'
@@ -299,27 +299,8 @@ function setupChoices(actions) {
   ].filter(Boolean)
 }
 
-// The shell's own DeepSeek sign-in dialog, borrowed from its account plugin: the
-// plugin's model sign-in entry renders here with the plugin's own operations.
-export function DeepSeekSignIn({ useUi, actions }) {
-  const open = useUi(state => state.signIn)
-  const entry = open ? actions.signInEntry?.() : null
-  if (!entry) return null
-  return h(SignInHost, { key: open, entry, actions })
-}
-
-function SignInHost({ entry, actions }) {
-  const [ops] = useState(() => entry.inject?.() ?? {})
-  const close = () => actions.closeSignIn()
-  const useHook = source => selector => useSyncExternalStore(source.subscribe, () => selector(source.getSnapshot()))
-  const [hooks] = useState(() => ({ useAccount: useHook(ops.hooks.account), useTheme: useHook(ops.hooks.theme) }))
-  return h(entry.component, {
-    ...ops,
-    ...hooks,
-    t: actions.accountT(),
-    complete: close,
-    useApiKey: () => { close(); actions.openHarnessOnboarding('deepseek-official') },
-  })
+export function DeepSeekSignIn() {
+  return null
 }
 
 export const MODEL_CSS = `

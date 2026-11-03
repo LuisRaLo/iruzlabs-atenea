@@ -572,10 +572,10 @@ export function TeamSidebar(props) {
   // The foot stands in for the shell's hidden footer: the account avatar, and on
   // the rail the new-chat button above it.
   const foot = wideContent
-    ? h('div', { className: 'bt-leftcol-foot' }, h(AccountLauncher, { seat: false, actions }))
+    ? h('div', { className: 'bt-leftcol-foot' }, h(AccountLauncher, { seat: false, roster, actions }))
     : h('div', { className: 'bt-leftcol-foot bt-leftcol-foot-rail' },
         h('button', { type: 'button', className: 'bt-round', 'aria-label': t('New…'), title: t('New…'), onClick: () => actions.openNewChat('new') }, h(PlusIcon)),
-        h(AccountLauncher, { seat: false, actions }))
+        h(AccountLauncher, { seat: false, roster, actions }))
   const content = h('div', { className: wideContent ? 'bt-side' : 'bt-side bt-rail', onKeyDown: typeToSearch },
     top,
     wideContent && roster.readOnly ? h('div', { className: 'bt-hint bt-read-only', role: 'status' }, hostText(roster.readOnly)) : null,
@@ -780,8 +780,11 @@ const NO_SNAPSHOT = () => null
 // `seat` is the shell's settings.launcher seat: at priority -10 the whale wins it
 // over a shell account plugin's own launcher (the Desktop's "··· More"), which comes
 // back in Agent mode; FooterAccount stands in while no seat exists at all.
-export function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboarding, actions }) {
+export function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboarding, roster: propRoster, hooks, actions }) {
   const [open, setOpen] = useState(false)
+  const rosterSource = hooks?.roster
+  const rosterSnap = useSyncExternalStore(rosterSource?.subscribe ?? NO_SUBSCRIBE, rosterSource ? () => rosterSource.getSnapshot() : NO_SNAPSHOT)
+  const roster = propRoster ?? rosterSnap
   useLayoutEffect(() => {
     if (!seat) return undefined
     actions.seatAccount(true)
@@ -863,6 +866,7 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
   }, [open])
   // DS Bot's Models page where the host serves the providers, else DSH's own.
   const openModels = actions.providers ? actions.openModels : actions.openHarnessModels
+  const user = roster?.auth?.user
   const groups = [
     [
       [t('Usage'), GaugeIcon, () => actions.openSettings('usage')],
@@ -875,12 +879,17 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
       [t('Switch to classic Agent mode'), SwitchIcon, () => actions.setSurface('agent')],
     ],
   ]
-  if (signedIn) groups.push([[accountT('signOut'), SignOutIcon, askSignOut, undefined, true]])
+  if (user) groups.push([[t('Sign out'), SignOutIcon, () => actions.authSignOut()]])
+  else if (signedIn) groups.push([[accountT('signOut'), SignOutIcon, askSignOut, undefined, true]])
   else if (signedOut) groups.push([[t('Sign in to DeepSeek'), SignInIcon, () => actions.signIn()]])
   return h(Fragment, null,
     h('button', { ref: button, type: 'button', className: 'bt-account', 'aria-label': t('Account'), 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: toggle },
-      h('span', { className: 'bt-you', 'aria-hidden': true }, h(GearIcon))),
+      h('span', { className: 'bt-you', 'aria-hidden': true }, user ? h('span', { className: 'bt-you-initial' }, (user.name || user.email || 'A').slice(0, 1).toUpperCase()) : h(GearIcon))),
     open && box ? createPortal(h('div', { className: 'bt-menu bt-menu-up bt-account-menu', role: 'menu', 'aria-label': t('Account'), style: box },
+      user ? h('div', { className: 'bt-account-user' },
+        h('div', { className: 'bt-account-user-name' }, user.name || user.email),
+        h('div', { className: 'bt-account-user-email' }, user.email),
+        h('div', { className: 'bt-account-user-badge' }, user.provider === 'microsoft' ? 'Microsoft 365' : 'Google Workspace')) : null,
       confirm !== null ? h('div', { className: 'bt-confirm', role: 'alertdialog', 'aria-label': accountT('signOut') },
         h('p', { className: 'bt-confirm-text' }, accountT(confirm === 'running' ? 'signOutRunningDescription' : confirm === 'unknown' ? 'signOutUnknownDescription' : 'signOutDescription')),
         signOutError !== '' ? h('p', { className: 'bt-confirm-error', role: 'alert' }, signOutError) : null,

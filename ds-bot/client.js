@@ -262,6 +262,23 @@ var ZH = {
   "Request ID": "请求 ID",
   "Provider message": "原文",
   "DS Bot": "DS Bot",
+  "Corporate Access": "企业访问",
+  "Corporate AI Workspace · Iruz Labs": "企业 AI 工作空间 · Iruz Labs",
+  "Exclusive Internal Access": "专属内部访问",
+  "Authorized corporate accounts only:": "仅限授权企业账号：",
+  "Waiting for authentication in your browser…": "等待在浏览器中完成身份验证…",
+  "OAuth client ID not configured. Use direct corporate sign-in below.": "未配置 OAuth 客户端 ID，请使用下方的企业邮箱直接登录。",
+  "Authentication failed": "身份验证失败",
+  "Please enter your corporate email": "请输入您的企业邮箱",
+  "Access denied: email domain is not authorized. Only @iruzlabs.com and @azurylabs.online are permitted.": "访问被拒绝：邮箱域名未经授权。仅允许 @iruzlabs.com 和 @azurylabs.online。",
+  "Complete sign-in in your browser, then return here.": "请在浏览器中完成登录，然后返回此处。",
+  "Continue with Google Workspace": "通过 Google Workspace 继续",
+  "Continue with Microsoft 365": "通过 Microsoft 365 继续",
+  "Or direct corporate access": "或直接企业邮箱访问",
+  "Corporate email": "企业邮箱",
+  "Identity Provider": "身份提供商",
+  "Sign in to Atenea": "登录 Atenea",
+  "Sign out": "退出登录",
   // Header
   "Message {name}": "给 {name} 发消息",
   Message: "发消息",
@@ -1618,8 +1635,8 @@ function bodyOf(def, paint, flat = false) {
     return "";
   }
 }
-var eyeMarkup = ([cx, cy, w, h52, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><rect class="bt-eye" x="${-w / 2}" y="${-h52 / 2}" width="${w}" height="${h52}" rx="${w / 2}"/></g>`;
-var happyEyeMarkup = ([cx, cy, w, h52, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><path class="bt-eye-happy" opacity="0" d="M${-w * 0.62} ${h52 * 0.14}Q0 ${-h52 * 0.42} ${w * 0.62} ${h52 * 0.14}" fill="none" stroke="#000" stroke-width="${w * 0.5}" stroke-linecap="round"/></g>`;
+var eyeMarkup = ([cx, cy, w, h53, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><rect class="bt-eye" x="${-w / 2}" y="${-h53 / 2}" width="${w}" height="${h53}" rx="${w / 2}"/></g>`;
+var happyEyeMarkup = ([cx, cy, w, h53, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><path class="bt-eye-happy" opacity="0" d="M${-w * 0.62} ${h53 * 0.14}Q0 ${-h53 * 0.42} ${w * 0.62} ${h53 * 0.14}" fill="none" stroke="#000" stroke-width="${w * 0.5}" stroke-linecap="round"/></g>`;
 var maskBox = (size) => `maskUnits="userSpaceOnUse" x="${-size}" y="${-size}" width="${size * 3}" height="${size * 3}"`;
 var holes = (def, eyes) => `<rect x="${-def.size}" y="${-def.size}" width="${def.size * 3}" height="${def.size * 3}" fill="#fff"/>${eyes}`;
 var MASK_ID = "%MASK%";
@@ -1870,6 +1887,10 @@ function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards
     connectorConnect: (id, token, extra = {}) => after(call2("connector-connect", { id, token, ...extra })),
     connectorDisconnect: (id) => after(call2("connector-disconnect", { id })),
     connectorRetry: (id) => after(call2("connector-retry", { id })),
+    authStart: (provider) => call2("auth-start", { provider }),
+    authCancel: () => call2("auth-cancel"),
+    authSignOut: () => after(call2("auth-sign-out")),
+    authDevLogin: (payload) => after(call2("auth-dev-login", payload)),
     saveCapability: (capability) => after(call2("capability-save", capability)),
     deleteCapability: (name) => after(call2("capability-delete", { name })),
     approveCapability: (name) => after(call2("capability-approve", { name })),
@@ -2396,12 +2417,12 @@ function liveSprings(apply2) {
     const dt = Math.min(0.5, Math.max(1e-3, (now - last) / 1e3));
     last = now;
     const steps = Math.ceil(dt * 240);
-    const h52 = dt / steps;
+    const h53 = dt / steps;
     let moving = false;
     for (const value of values.values()) {
       for (let index = 0; index < steps; index += 1) {
-        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * h52;
-        value.x += value.v * h52;
+        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * h53;
+        value.x += value.v * h53;
       }
       if (Math.abs(value.x - value.to) < 0.05 && Math.abs(value.v) < 1) {
         value.x = value.to;
@@ -3783,6 +3804,40 @@ div:has(> nav [class*="_marks"]){display:none!important}
 .bt-btw-answer p{margin:0}
 .bt-btw-fail{margin:0 0 6px;color:var(--bt-danger);font-size:13px;line-height:18px}
 @media (prefers-reduced-motion:reduce){.bt-btw-chevron{transition:none}}
+.bt-auth-layer{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.bt-auth-card{position:relative;width:100%;max-width:440px;background:var(--bt-card);border:1px solid var(--bt-line-2);border-radius:16px;box-shadow:var(--bt-glass-shadow);padding:32px 28px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center;color:var(--bt-ink);font-family:var(--bt-font);animation:bt-veil-in .2s ease-out}
+.bt-auth-avatar{width:56px;height:56px;margin-bottom:12px;object-fit:contain}
+.bt-auth-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;color:var(--bt-ink)}
+.bt-auth-sub{font-size:13px;line-height:18px;color:var(--bt-ink-2);margin:0 0 16px}
+.bt-auth-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--bt-hover);border:1px solid var(--bt-line);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--bt-accent);margin-bottom:18px}
+.bt-auth-domains{width:100%;padding:10px 14px;border-radius:10px;background:var(--bt-main);border:1px solid var(--bt-line);margin-bottom:20px;box-sizing:border-box;text-align:left}
+.bt-auth-domains-label{font-size:11px;font-weight:600;color:var(--bt-ink-3);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.bt-auth-domains-chips{display:flex;flex-wrap:wrap;gap:6px}
+.bt-auth-chip{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--bt-hover);border:1px solid var(--bt-line-2);font-size:12px;font-weight:500;font-family:monospace;color:var(--bt-accent)}
+.bt-auth-actions{width:100%;display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.bt-auth-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:44px;border-radius:10px;border:1px solid var(--bt-line-2);background:var(--bt-main);color:var(--bt-ink);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.bt-auth-btn:hover{background:var(--bt-hover);border-color:var(--bt-line)}
+.bt-auth-btn:active{background:var(--bt-active)}
+.bt-auth-btn svg{width:18px;height:18px;flex-shrink:0}
+.bt-auth-divider{display:flex;align-items:center;width:100%;gap:12px;margin:12px 0;color:var(--bt-ink-3);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.bt-auth-divider::before,.bt-auth-divider::after{content:"";flex:1;height:1px;background:var(--bt-line)}
+.bt-auth-direct{width:100%;display:flex;flex-direction:column;gap:8px}
+.bt-auth-input{width:100%;height:38px;padding:0 12px;border-radius:8px;border:1px solid var(--bt-line-2);background:var(--bt-main);color:var(--bt-ink);font-size:13px;font-family:inherit;box-sizing:border-box;outline:none}
+.bt-auth-input:focus{border-color:var(--bt-accent)}
+.bt-auth-select{width:100%;height:38px;padding:0 10px;border-radius:8px;border:1px solid var(--bt-line-2);background:var(--bt-main);color:var(--bt-ink);font-size:13px;font-family:inherit;box-sizing:border-box}
+.bt-auth-submit{width:100%;height:38px;border-radius:8px;border:0;background:var(--bt-accent);color:var(--bt-card);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.bt-auth-submit:hover{opacity:.92}
+.bt-auth-alert{width:100%;padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:12px;line-height:16px;text-align:left;box-sizing:border-box}
+.bt-auth-alert-error{background:var(--bt-hover);border:1px solid var(--bt-danger);color:var(--bt-danger)}
+.bt-auth-alert-info{background:var(--bt-hover);border:1px solid var(--bt-accent);color:var(--bt-accent)}
+.bt-auth-waiting{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 0}
+.bt-auth-spinner{width:28px;height:28px;border:2px solid var(--bt-line-2);border-top-color:var(--bt-accent);border-radius:50%;animation:bt-spin 1s linear infinite}
+@keyframes bt-spin{to{transform:rotate(360deg)}}
+.bt-account-user{padding:8px 10px 10px;border-bottom:1px solid var(--bt-line);margin-bottom:4px;display:flex;flex-direction:column;gap:2px}
+.bt-account-user-name{font-size:13px;font-weight:600;color:var(--bt-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt-account-user-email{font-size:11px;color:var(--bt-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt-account-user-badge{display:inline-block;align-self:flex-start;margin-top:4px;padding:1px 6px;border-radius:4px;background:var(--bt-hover);font-size:10px;font-weight:500;color:var(--bt-accent)}
+.bt-you-initial{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;font-weight:700;color:var(--bt-card);background:var(--bt-accent);border-radius:50%}
 `;
 var PLUGIN_ID = "ds-bot";
 function installStyles(text, tag) {
@@ -10647,11 +10702,11 @@ function TeamSidebar(props) {
     main ? (0, import_react21.createElement)(BotRow, { ...rowProps, bot: main, marked: markedUnread[main.id] === true }) : roster.ready ? null : (0, import_react21.createElement)("div", { className: "bt-hint" }, uiNow.bootFailed ? bootHint() : t("Setting up your Main Bot…")),
     (0, import_react21.createElement)("span", { className: "bt-rail-sep", "aria-hidden": true })
   );
-  const foot = wideContent ? (0, import_react21.createElement)("div", { className: "bt-leftcol-foot" }, (0, import_react21.createElement)(AccountLauncher, { seat: false, actions })) : (0, import_react21.createElement)(
+  const foot = wideContent ? (0, import_react21.createElement)("div", { className: "bt-leftcol-foot" }, (0, import_react21.createElement)(AccountLauncher, { seat: false, roster, actions })) : (0, import_react21.createElement)(
     "div",
     { className: "bt-leftcol-foot bt-leftcol-foot-rail" },
     (0, import_react21.createElement)("button", { type: "button", className: "bt-round", "aria-label": t("New…"), title: t("New…"), onClick: () => actions.openNewChat("new") }, (0, import_react21.createElement)(PlusIcon)),
-    (0, import_react21.createElement)(AccountLauncher, { seat: false, actions })
+    (0, import_react21.createElement)(AccountLauncher, { seat: false, roster, actions })
   );
   const content = (0, import_react21.createElement)(
     "div",
@@ -10864,8 +10919,11 @@ function pressesShellShortcut(event, id) {
 var NO_SUBSCRIBE = () => () => {
 };
 var NO_SNAPSHOT = () => null;
-function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboarding, actions }) {
+function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboarding, roster: propRoster, hooks, actions }) {
   const [open, setOpen] = (0, import_react21.useState)(false);
+  const rosterSource = hooks?.roster;
+  const rosterSnap = (0, import_react21.useSyncExternalStore)(rosterSource?.subscribe ?? NO_SUBSCRIBE, rosterSource ? () => rosterSource.getSnapshot() : NO_SNAPSHOT);
+  const roster = propRoster ?? rosterSnap;
   (0, import_react21.useLayoutEffect)(() => {
     if (!seat) return void 0;
     actions.seatAccount(true);
@@ -10966,6 +11024,7 @@ function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboardi
     setBusy(false);
   }, [open]);
   const openModels = actions.providers ? actions.openModels : actions.openHarnessModels;
+  const user = roster?.auth?.user;
   const groups = [
     [
       [t("Usage"), GaugeIcon, () => actions.openSettings("usage")],
@@ -10978,7 +11037,8 @@ function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboardi
       [t("Switch to classic Agent mode"), SwitchIcon, () => actions.setSurface("agent")]
     ]
   ];
-  if (signedIn) groups.push([[accountT("signOut"), SignOutIcon, askSignOut, void 0, true]]);
+  if (user) groups.push([[t("Sign out"), SignOutIcon, () => actions.authSignOut()]]);
+  else if (signedIn) groups.push([[accountT("signOut"), SignOutIcon, askSignOut, void 0, true]]);
   else if (signedOut) groups.push([[t("Sign in to DeepSeek"), SignInIcon, () => actions.signIn()]]);
   return (0, import_react21.createElement)(
     import_react21.Fragment,
@@ -10986,11 +11046,18 @@ function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboardi
     (0, import_react21.createElement)(
       "button",
       { ref: button, type: "button", className: "bt-account", "aria-label": t("Account"), "aria-haspopup": "menu", "aria-expanded": open, onClick: toggle },
-      (0, import_react21.createElement)("span", { className: "bt-you", "aria-hidden": true }, (0, import_react21.createElement)(GearIcon))
+      (0, import_react21.createElement)("span", { className: "bt-you", "aria-hidden": true }, user ? (0, import_react21.createElement)("span", { className: "bt-you-initial" }, (user.name || user.email || "A").slice(0, 1).toUpperCase()) : (0, import_react21.createElement)(GearIcon))
     ),
     open && box ? (0, import_react_dom3.createPortal)((0, import_react21.createElement)(
       "div",
       { className: "bt-menu bt-menu-up bt-account-menu", role: "menu", "aria-label": t("Account"), style: box },
+      user ? (0, import_react21.createElement)(
+        "div",
+        { className: "bt-account-user" },
+        (0, import_react21.createElement)("div", { className: "bt-account-user-name" }, user.name || user.email),
+        (0, import_react21.createElement)("div", { className: "bt-account-user-email" }, user.email),
+        (0, import_react21.createElement)("div", { className: "bt-account-user-badge" }, user.provider === "microsoft" ? "Microsoft 365" : "Google Workspace")
+      ) : null,
       confirm !== null ? (0, import_react21.createElement)(
         "div",
         { className: "bt-confirm", role: "alertdialog", "aria-label": accountT("signOut") },
@@ -12614,27 +12681,8 @@ function setupChoices(actions) {
     custom ? [t("Open settings to set up a custom model"), () => custom()] : null
   ].filter(Boolean);
 }
-function DeepSeekSignIn({ useUi, actions }) {
-  const open = useUi((state) => state.signIn);
-  const entry = open ? actions.signInEntry?.() : null;
-  if (!entry) return null;
-  return (0, import_react25.createElement)(SignInHost, { key: open, entry, actions });
-}
-function SignInHost({ entry, actions }) {
-  const [ops] = (0, import_react25.useState)(() => entry.inject?.() ?? {});
-  const close = () => actions.closeSignIn();
-  const useHook = (source) => (selector) => (0, import_react25.useSyncExternalStore)(source.subscribe, () => selector(source.getSnapshot()));
-  const [hooks] = (0, import_react25.useState)(() => ({ useAccount: useHook(ops.hooks.account), useTheme: useHook(ops.hooks.theme) }));
-  return (0, import_react25.createElement)(entry.component, {
-    ...ops,
-    ...hooks,
-    t: actions.accountT(),
-    complete: close,
-    useApiKey: () => {
-      close();
-      actions.openHarnessOnboarding("deepseek-official");
-    }
-  });
+function DeepSeekSignIn() {
+  return null;
 }
 var MODEL_CSS = `
 .bt-model-trigger{display:inline-flex;align-items:center;gap:8px;max-width:100%;min-width:0;height:auto;min-height:32px;padding:4px 8px 4px 10px;border:0;border-radius:8px;background:var(--bt-hover);color:var(--bt-ink);font:inherit;text-align:left;cursor:pointer;transition:background-color .12s ease}
@@ -20306,8 +20354,145 @@ var BROWSER_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-ptabs,.bt-panel-view,.bt-bcard,.bt-ptab-name{animation:none}}
 `;
 
-// src/client/overlays.js
+// src/client/auth-gate.js
 var import_react52 = require("react");
+var GoogleMark = () => (0, import_react52.createElement)(
+  "svg",
+  { width: 18, height: 18, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": true },
+  (0, import_react52.createElement)("path", { d: "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5a3.5 3.5 0 1 1 3.5-3.5 3.5 3.5 0 0 1-3.5 3.5zm7.56-4.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" })
+);
+var MicrosoftMark = () => (0, import_react52.createElement)(
+  "svg",
+  { width: 18, height: 18, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": true },
+  (0, import_react52.createElement)("path", { d: "M2 2h9v9H2V2zm11 0h9v9h-9V2zM2 13h9v9H2v-9zm11 0h9v9h-9v-9z" })
+);
+function AuthGate({ roster, actions }) {
+  const [busyProvider, setBusyProvider] = (0, import_react52.useState)(null);
+  const [directEmail, setDirectEmail] = (0, import_react52.useState)("");
+  const [directProvider, setDirectProvider] = (0, import_react52.useState)("google");
+  const [error, setError] = (0, import_react52.useState)("");
+  const [info, setInfo] = (0, import_react52.useState)("");
+  const domains = roster.auth?.domains ?? ["iruzlabs.com", "azurylabs.online"];
+  const startOAuth = async (provider) => {
+    setError("");
+    setInfo("");
+    setBusyProvider(provider);
+    try {
+      const res = await actions.authStart(provider);
+      if (res?.authUrl) {
+        window.open(res.authUrl, "_blank");
+        setInfo(t("Waiting for authentication in your browser…"));
+      } else if (res?.configured === false) {
+        setBusyProvider(null);
+        setInfo(t("OAuth client ID not configured. Use direct corporate sign-in below."));
+      }
+    } catch (err) {
+      setBusyProvider(null);
+      setError(err?.message || t("Authentication failed"));
+    }
+  };
+  const cancelOAuth = async () => {
+    setBusyProvider(null);
+    setInfo("");
+    try {
+      await actions.authCancel();
+    } catch {
+    }
+  };
+  const submitDirect = async (e) => {
+    if (e) e.preventDefault();
+    setError("");
+    const email = directEmail.trim().toLowerCase();
+    if (!email) {
+      setError(t("Please enter your corporate email"));
+      return;
+    }
+    const isAllowed = domains.some((d) => email.endsWith(`@${d.toLowerCase()}`) || email.endsWith(`.${d.toLowerCase()}`));
+    if (!isAllowed) {
+      setError(t("Access denied: email domain is not authorized. Only @iruzlabs.com and @azurylabs.online are permitted."));
+      return;
+    }
+    try {
+      await actions.authDevLogin({ email, provider: directProvider });
+    } catch (err) {
+      setError(err?.message || t("Authentication failed"));
+    }
+  };
+  return (0, import_react52.createElement)(
+    "div",
+    { className: "bt-auth-layer" },
+    (0, import_react52.createElement)("div", { className: "bt-auth-backdrop" }),
+    (0, import_react52.createElement)(
+      "div",
+      { className: "bt-auth-card", role: "dialog", "aria-modal": true, "aria-label": t("Corporate Access") },
+      (0, import_react52.createElement)("img", { className: "bt-auth-avatar", src: ATENEA_AVATAR, alt: "Atenea", draggable: false }),
+      (0, import_react52.createElement)("h1", { className: "bt-auth-title" }, "Atenea"),
+      (0, import_react52.createElement)("p", { className: "bt-auth-sub" }, t("Corporate AI Workspace · Iruz Labs")),
+      (0, import_react52.createElement)("span", { className: "bt-auth-badge" }, t("Exclusive Internal Access")),
+      (0, import_react52.createElement)(
+        "div",
+        { className: "bt-auth-domains" },
+        (0, import_react52.createElement)("div", { className: "bt-auth-domains-label" }, t("Authorized corporate accounts only:")),
+        (0, import_react52.createElement)(
+          "div",
+          { className: "bt-auth-domains-chips" },
+          domains.map((d) => (0, import_react52.createElement)("span", { key: d, className: "bt-auth-chip" }, `@${d}`))
+        )
+      ),
+      error ? (0, import_react52.createElement)("div", { className: "bt-auth-alert bt-auth-alert-error", role: "alert" }, error) : null,
+      info ? (0, import_react52.createElement)("div", { className: "bt-auth-alert bt-auth-alert-info", role: "status" }, info) : null,
+      busyProvider ? (0, import_react52.createElement)(
+        "div",
+        { className: "bt-auth-waiting" },
+        (0, import_react52.createElement)("div", { className: "bt-auth-spinner", "aria-hidden": true }),
+        (0, import_react52.createElement)("p", { className: "bt-auth-sub" }, t("Complete sign-in in your browser, then return here.")),
+        (0, import_react52.createElement)("button", { type: "button", className: "bt-auth-btn", onClick: cancelOAuth }, t("Cancel"))
+      ) : (0, import_react52.createElement)(
+        "div",
+        { className: "bt-auth-actions" },
+        (0, import_react52.createElement)("button", {
+          type: "button",
+          className: "bt-auth-btn",
+          onClick: () => startOAuth("google")
+        }, (0, import_react52.createElement)(GoogleMark), (0, import_react52.createElement)("span", null, t("Continue with Google Workspace"))),
+        (0, import_react52.createElement)("button", {
+          type: "button",
+          className: "bt-auth-btn",
+          onClick: () => startOAuth("microsoft")
+        }, (0, import_react52.createElement)(MicrosoftMark), (0, import_react52.createElement)("span", null, t("Continue with Microsoft 365")))
+      ),
+      (0, import_react52.createElement)("div", { className: "bt-auth-divider" }, (0, import_react52.createElement)("span", null, t("Or direct corporate access"))),
+      (0, import_react52.createElement)(
+        "form",
+        { className: "bt-auth-direct", onSubmit: submitDirect },
+        (0, import_react52.createElement)("input", {
+          className: "bt-auth-input",
+          type: "email",
+          value: directEmail,
+          placeholder: "nombre@iruzlabs.com",
+          onChange: (e) => setDirectEmail(e.target.value),
+          required: true,
+          "aria-label": t("Corporate email")
+        }),
+        (0, import_react52.createElement)(
+          "select",
+          {
+            className: "bt-auth-select",
+            value: directProvider,
+            onChange: (e) => setDirectProvider(e.target.value),
+            "aria-label": t("Identity Provider")
+          },
+          (0, import_react52.createElement)("option", { value: "google" }, "Google Workspace"),
+          (0, import_react52.createElement)("option", { value: "microsoft" }, "Microsoft 365")
+        ),
+        (0, import_react52.createElement)("button", { type: "submit", className: "bt-auth-submit" }, t("Sign in to Atenea"))
+      )
+    )
+  );
+}
+
+// src/client/overlays.js
+var import_react53 = require("react");
 var import_react_dom9 = require("react-dom");
 var DIALOG_EXIT_MS = 160;
 var MENU_EXIT_MS3 = 120;
@@ -20318,8 +20503,8 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   const frameSnap = useFrame ? useFrame((value) => value) : { viewport: window.innerWidth, sidebarWidth: FALLBACK_SIDEBAR_WIDTH, collapsedWidth: 0 };
   const pref = useSidebarPref ? useSidebarPref((value) => value) : "open";
   const current = useSessions((list) => Object.values(list.byId).find((session) => (session?.retainedBy?.mainView ?? 0) > 0)?.id ?? null);
-  const previous = (0, import_react52.useRef)(current);
-  (0, import_react52.useEffect)(() => {
+  const previous = (0, import_react53.useRef)(current);
+  (0, import_react53.useEffect)(() => {
     if (previous.current === current) return;
     previous.current = current;
     if (current) actions.followPanel?.(current);
@@ -20333,8 +20518,8 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
     panel: open ? { view: open.view, yielded: ui2.panelYield === true } : null
   });
   const shown = open !== null && layout.panel !== "folded" ? open : null;
-  const [kept, setKept] = (0, import_react52.useState)(shown);
-  (0, import_react52.useEffect)(() => {
+  const [kept, setKept] = (0, import_react53.useState)(shown);
+  (0, import_react53.useEffect)(() => {
     if (shown) {
       setKept(shown);
       return void 0;
@@ -20353,17 +20538,18 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   const [memory, memoryLeaving] = useLinger(ui2.memory && memoryOwner(ui2.memory) ? ui2.memory : null, DIALOG_EXIT_MS);
   const owner = memory ? memoryOwner(memory) : null;
   const [menu, menuLeaving] = useLinger(ui2.menu, MENU_EXIT_MS3);
-  return (0, import_react52.createElement)(
-    import_react52.Fragment,
+  return (0, import_react53.createElement)(
+    import_react53.Fragment,
     null,
-    pane ? (0, import_react_dom9.createPortal)((0, import_react52.createElement)(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === "overlay", roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body) : null,
-    ui2.newChat ? (0, import_react_dom9.createPortal)((0, import_react52.createElement)(NewChat, { key: ui2.newChat, mode: ui2.newChat, roster, actions }), document.body) : null,
-    ui2.palette ? (0, import_react_dom9.createPortal)((0, import_react52.createElement)(CommandPalette, { key: ui2.palette.token, start: ui2.palette.query, token: ui2.palette.token, roster, actions, useSessions }), document.body) : null,
-    ui2.exchange ? (0, import_react_dom9.createPortal)((0, import_react52.createElement)(ExchangeDialog, { pair: ui2.exchange, roster, actions }), document.body) : null,
-    ui2.voice ? (0, import_react_dom9.createPortal)((0, import_react52.createElement)(VoiceMode, { key: ui2.voice, sessionId: ui2.voice, roster, actions, useSessions, useSessionStatus }), document.body) : null,
-    menu ? (0, import_react_dom9.createPortal)((0, import_react52.createElement)(ContextMenu, { key: `${menu.kind ?? ""}:${menu.id}:${menu.x}:${menu.y}`, menu, roster, actions, leaving: menuLeaving }), document.body) : null,
-    settings ? (0, import_react_dom9.createPortal)((0, import_react52.createElement)(SettingsDialog, { page: settings.page, id: settings.id, roster, actions, useUpdate, leaving: settingsLeaving }), document.body) : null,
-    owner ? (0, import_react_dom9.createPortal)((0, import_react52.createElement)(MemoryDialog, { key: owner.id, owner, actions, leaving: memoryLeaving }), document.body) : null
+    pane ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === "overlay", roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body) : null,
+    ui2.newChat ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(NewChat, { key: ui2.newChat, mode: ui2.newChat, roster, actions }), document.body) : null,
+    ui2.palette ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(CommandPalette, { key: ui2.palette.token, start: ui2.palette.query, token: ui2.palette.token, roster, actions, useSessions }), document.body) : null,
+    ui2.exchange ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(ExchangeDialog, { pair: ui2.exchange, roster, actions }), document.body) : null,
+    ui2.voice ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(VoiceMode, { key: ui2.voice, sessionId: ui2.voice, roster, actions, useSessions, useSessionStatus }), document.body) : null,
+    menu ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(ContextMenu, { key: `${menu.kind ?? ""}:${menu.id}:${menu.x}:${menu.y}`, menu, roster, actions, leaving: menuLeaving }), document.body) : null,
+    settings ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(SettingsDialog, { page: settings.page, id: settings.id, roster, actions, useUpdate, leaving: settingsLeaving }), document.body) : null,
+    owner ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(MemoryDialog, { key: owner.id, owner, actions, leaving: memoryLeaving }), document.body) : null,
+    roster.auth?.required && !roster.auth?.user ? (0, import_react_dom9.createPortal)((0, import_react53.createElement)(AuthGate, { roster, actions }), document.body) : null
   );
 }
 
@@ -21421,13 +21607,13 @@ function lineDiff(before, after) {
 }
 
 // src/client/learning-card.js
-var import_react53 = require("react");
+var import_react54 = require("react");
 var failedAnswers = /* @__PURE__ */ new Map();
 function ProposalCard({ proposal, initialError = "", onFailure, onResolved, actions }) {
-  const [busy, setBusy] = (0, import_react53.useState)(false);
-  const [error, setError] = (0, import_react53.useState)(initialError);
-  const busyRef = (0, import_react53.useRef)(false);
-  const titleId = (0, import_react53.useId)();
+  const [busy, setBusy] = (0, import_react54.useState)(false);
+  const [error, setError] = (0, import_react54.useState)(initialError);
+  const busyRef = (0, import_react54.useRef)(false);
+  const titleId = (0, import_react54.useId)();
   const answer = (approve) => {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -21443,58 +21629,58 @@ function ProposalCard({ proposal, initialError = "", onFailure, onResolved, acti
     });
   };
   const update = proposal.action === "update";
-  const rows2 = (0, import_react53.useMemo)(() => lineDiff(update ? proposal.previous?.content : "", proposal.content), [update, proposal.previous?.content, proposal.content]);
+  const rows2 = (0, import_react54.useMemo)(() => lineDiff(update ? proposal.previous?.content : "", proposal.content), [update, proposal.previous?.content, proposal.content]);
   if (proposal.kind === "agents") {
     const blocks = proposal.edits.map((edit) => [
       ...(edit.op === "add" ? [] : editLines(edit.old)).map((line) => ({ kind: "removed", line })),
       ...(edit.op === "remove" ? [] : editLines(edit.text)).map((line) => ({ kind: "added", line }))
     ]);
-    return (0, import_react53.createElement)(
+    return (0, import_react54.createElement)(
       "section",
       { className: "bt-q bt-learning-card", role: "group", "aria-labelledby": titleId, "aria-busy": busy },
-      (0, import_react53.createElement)(ProposalHead, { titleId, icon: PencilIcon, title: t("AGENTS.md update") }),
-      (0, import_react53.createElement)(FileBox, { name: "AGENTS.md", path: proposal.folder, state: proposal.exists === false ? "Added" : "Modified", blocks }),
-      proposal.edits.map((edit, index) => edit.why ? (0, import_react53.createElement)("p", { className: "bt-learning-why", key: index }, edit.why) : null),
-      error ? (0, import_react53.createElement)("div", { className: "bt-learning-error", role: "alert" }, error) : null,
-      (0, import_react53.createElement)(ProposalFoot, { busy, answer })
+      (0, import_react54.createElement)(ProposalHead, { titleId, icon: PencilIcon, title: t("AGENTS.md update") }),
+      (0, import_react54.createElement)(FileBox, { name: "AGENTS.md", path: proposal.folder, state: proposal.exists === false ? "Added" : "Modified", blocks }),
+      proposal.edits.map((edit, index) => edit.why ? (0, import_react54.createElement)("p", { className: "bt-learning-why", key: index }, edit.why) : null),
+      error ? (0, import_react54.createElement)("div", { className: "bt-learning-error", role: "alert" }, error) : null,
+      (0, import_react54.createElement)(ProposalFoot, { busy, answer })
     );
   }
   const oldDetail = update && typeof proposal.previous?.description === "string" && proposal.previous.description !== proposal.description ? proposal.previous.description : void 0;
-  return (0, import_react53.createElement)(
+  return (0, import_react54.createElement)(
     "section",
     { className: "bt-q bt-learning-card", role: "group", "aria-labelledby": titleId, "aria-busy": busy },
-    (0, import_react53.createElement)(ProposalHead, { titleId, title: proposal.name, kind: t(update ? "Skill update" : "New skill"), detail: proposal.description, oldDetail }),
-    (0, import_react53.createElement)(FileBox, { name: "SKILL.md", path: `skills/${proposal.name}`, state: update ? "Updated" : "Added", blocks: [rows2] }),
-    proposal.why ? (0, import_react53.createElement)("p", { className: "bt-learning-why" }, proposal.why) : null,
-    error ? (0, import_react53.createElement)("div", { className: "bt-learning-error", role: "alert" }, error) : null,
-    (0, import_react53.createElement)(ProposalFoot, { busy, answer })
+    (0, import_react54.createElement)(ProposalHead, { titleId, title: proposal.name, kind: t(update ? "Skill update" : "New skill"), detail: proposal.description, oldDetail }),
+    (0, import_react54.createElement)(FileBox, { name: "SKILL.md", path: `skills/${proposal.name}`, state: update ? "Updated" : "Added", blocks: [rows2] }),
+    proposal.why ? (0, import_react54.createElement)("p", { className: "bt-learning-why" }, proposal.why) : null,
+    error ? (0, import_react54.createElement)("div", { className: "bt-learning-error", role: "alert" }, error) : null,
+    (0, import_react54.createElement)(ProposalFoot, { busy, answer })
   );
 }
 function ProposalHead({ titleId, icon: icon2 = MemoryIcon, title, kind, detail, oldDetail }) {
-  return (0, import_react53.createElement)(
+  return (0, import_react54.createElement)(
     "div",
     { className: "bt-q-head" },
-    (0, import_react53.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react53.createElement)(icon2)),
-    (0, import_react53.createElement)(
+    (0, import_react54.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react54.createElement)(icon2)),
+    (0, import_react54.createElement)(
       "div",
       { className: "bt-q-text" },
-      (0, import_react53.createElement)("p", { className: "bt-q-title", id: titleId }, title),
-      kind ? (0, import_react53.createElement)("div", { className: "bt-q-detail" }, kind) : null,
-      oldDetail ? (0, import_react53.createElement)("p", { className: "bt-learning-description bt-learning-old" }, (0, import_react53.createElement)("del", null, oldDetail)) : null,
-      detail ? (0, import_react53.createElement)("p", { className: "bt-learning-description" }, detail) : null
+      (0, import_react54.createElement)("p", { className: "bt-q-title", id: titleId }, title),
+      kind ? (0, import_react54.createElement)("div", { className: "bt-q-detail" }, kind) : null,
+      oldDetail ? (0, import_react54.createElement)("p", { className: "bt-learning-description bt-learning-old" }, (0, import_react54.createElement)("del", null, oldDetail)) : null,
+      detail ? (0, import_react54.createElement)("p", { className: "bt-learning-description" }, detail) : null
     ),
-    (0, import_react53.createElement)("span", { className: "bt-q-badge bt-learning-status" }, (0, import_react53.createElement)("span", { className: "bt-learning-dot", "aria-hidden": true }), t("Awaiting approval"))
+    (0, import_react54.createElement)("span", { className: "bt-q-badge bt-learning-status" }, (0, import_react54.createElement)("span", { className: "bt-learning-dot", "aria-hidden": true }), t("Awaiting approval"))
   );
 }
 function ProposalFoot({ busy, answer }) {
-  return (0, import_react53.createElement)(
+  return (0, import_react54.createElement)(
     "div",
     { className: "bt-q-foot bt-learning-foot" },
-    (0, import_react53.createElement)("button", { type: "button", className: "bt-learning-btn bt-learning-decline", disabled: busy, onClick: () => answer(false) }, t("Decline")),
-    (0, import_react53.createElement)(
+    (0, import_react54.createElement)("button", { type: "button", className: "bt-learning-btn bt-learning-decline", disabled: busy, onClick: () => answer(false) }, t("Decline")),
+    (0, import_react54.createElement)(
       "button",
       { type: "button", className: "bt-learning-btn bt-learning-approve", disabled: busy, onClick: () => answer(true) },
-      (0, import_react53.createElement)(CheckIcon),
+      (0, import_react54.createElement)(CheckIcon),
       t("Approve")
     )
   );
@@ -21502,43 +21688,43 @@ function ProposalFoot({ busy, answer }) {
 var COLLAPSE_ROWS = 8;
 var SIGNS = { added: "+", removed: "−", same: "" };
 function FileBox({ name, path, state, blocks }) {
-  const [open, setOpen] = (0, import_react53.useState)(false);
+  const [open, setOpen] = (0, import_react54.useState)(false);
   const all = blocks.flat();
   const added = all.filter((row) => row.kind === "added").length;
   const removed = all.filter((row) => row.kind === "removed").length;
   const folds = all.length > COLLAPSE_ROWS;
   const shut = folds && !open;
-  return (0, import_react53.createElement)(
+  return (0, import_react54.createElement)(
     "div",
     { className: "bt-learning-file" },
-    (0, import_react53.createElement)(
+    (0, import_react54.createElement)(
       "div",
       { className: "bt-learning-filehead" },
-      (0, import_react53.createElement)("span", { className: "bt-learning-name" }, name),
-      path ? (0, import_react53.createElement)("span", { className: "bt-learning-path" }, path) : null,
-      (0, import_react53.createElement)("span", { className: "bt-learning-spacer" }),
-      added > 0 ? (0, import_react53.createElement)("span", { className: "bt-learning-plus" }, `+${added}`) : null,
-      removed > 0 ? (0, import_react53.createElement)("span", { className: "bt-learning-minus" }, `−${removed}`) : null,
-      (0, import_react53.createElement)("span", { className: `bt-learning-state bt-learning-state-${state.toLowerCase()}` }, t(state))
+      (0, import_react54.createElement)("span", { className: "bt-learning-name" }, name),
+      path ? (0, import_react54.createElement)("span", { className: "bt-learning-path" }, path) : null,
+      (0, import_react54.createElement)("span", { className: "bt-learning-spacer" }),
+      added > 0 ? (0, import_react54.createElement)("span", { className: "bt-learning-plus" }, `+${added}`) : null,
+      removed > 0 ? (0, import_react54.createElement)("span", { className: "bt-learning-minus" }, `−${removed}`) : null,
+      (0, import_react54.createElement)("span", { className: `bt-learning-state bt-learning-state-${state.toLowerCase()}` }, t(state))
     ),
-    (0, import_react53.createElement)(
+    (0, import_react54.createElement)(
       "div",
       { className: shut ? "bt-learning-code bt-learning-shut" : "bt-learning-code" },
       blocks.map((rows2, blockIndex) => [
-        blockIndex > 0 ? (0, import_react53.createElement)("div", { className: "bt-learning-gap", key: `gap-${blockIndex}` }) : null,
-        ...rows2.map((row, rowIndex) => (0, import_react53.createElement)(
+        blockIndex > 0 ? (0, import_react54.createElement)("div", { className: "bt-learning-gap", key: `gap-${blockIndex}` }) : null,
+        ...rows2.map((row, rowIndex) => (0, import_react54.createElement)(
           "div",
           { className: `bt-learning-row bt-learning-${row.kind}`, key: `${blockIndex}-${rowIndex}` },
-          (0, import_react53.createElement)("span", { className: "bt-learning-num", "aria-hidden": true }, row.number ?? ""),
-          (0, import_react53.createElement)("span", { className: "bt-learning-sign", "aria-hidden": true }, SIGNS[row.kind]),
-          (0, import_react53.createElement)("span", { className: "bt-learning-text" }, row.line || " ")
+          (0, import_react54.createElement)("span", { className: "bt-learning-num", "aria-hidden": true }, row.number ?? ""),
+          (0, import_react54.createElement)("span", { className: "bt-learning-sign", "aria-hidden": true }, SIGNS[row.kind]),
+          (0, import_react54.createElement)("span", { className: "bt-learning-text" }, row.line || " ")
         ))
       ])
     ),
-    folds ? (0, import_react53.createElement)(
+    folds ? (0, import_react54.createElement)(
       "div",
       { className: shut ? "bt-learning-morebar bt-learning-morebar-shut" : "bt-learning-morebar" },
-      (0, import_react53.createElement)(
+      (0, import_react54.createElement)(
         "button",
         { type: "button", className: "bt-learning-more", "aria-expanded": open, onClick: () => setOpen(!open) },
         t(open ? "Show less" : "Show all {count} lines", { count: all.length })
@@ -21549,7 +21735,7 @@ function FileBox({ name, path, state, blocks }) {
 function LearningProposals({ turn, dock, sessionId, useRoster, actions }) {
   const roster = useRoster((value) => value);
   const facts = useTurnFacts(sessionId, actions);
-  const [failed, setFailed] = (0, import_react53.useState)({});
+  const [failed, setFailed] = (0, import_react54.useState)({});
   const bot = roster.byId?.[sessionId];
   if (!bot || currentPart(bot) !== sessionId) return null;
   const proposals = roster.learning?.[bot.id] ?? [];
@@ -21576,10 +21762,10 @@ function LearningProposals({ turn, dock, sessionId, useRoster, actions }) {
     delete next[id];
     return next;
   });
-  return (0, import_react53.createElement)("div", { className: dock ? "bt-learning-stack bt-learning-dock" : "bt-learning-stack" }, cards.map((proposal) => (0, import_react53.createElement)(
+  return (0, import_react54.createElement)("div", { className: dock ? "bt-learning-stack bt-learning-dock" : "bt-learning-stack" }, cards.map((proposal) => (0, import_react54.createElement)(
     "div",
     { className: "bt-q-inline", key: proposal.id },
-    (0, import_react53.createElement)(ProposalCard, {
+    (0, import_react54.createElement)(ProposalCard, {
       proposal,
       initialError: failed[proposal.id]?.error ?? failedAnswers.get(proposal.id)?.error,
       onFailure,
@@ -21589,10 +21775,10 @@ function LearningProposals({ turn, dock, sessionId, useRoster, actions }) {
   )));
 }
 function LearningTurnTail(props) {
-  return (0, import_react53.createElement)(LearningProposals, { ...props, dock: false });
+  return (0, import_react54.createElement)(LearningProposals, { ...props, dock: false });
 }
 function LearningDock(props) {
-  return (0, import_react53.createElement)(LearningProposals, { ...props, dock: true });
+  return (0, import_react54.createElement)(LearningProposals, { ...props, dock: true });
 }
 var LEARNING_CSS = `
 .bt-learning-stack{display:flex;flex-direction:column;gap:4px}
@@ -21675,7 +21861,7 @@ function createSwitchWindow(settle) {
 }
 
 // src/client/user-message.js
-var import_react54 = require("react");
+var import_react55 = require("react");
 var ui = __toESM(require("@deepseek-ai/dsh-client-ui-primitives"), 1);
 var canDrawUserMessages = () => typeof ui.projectUserText === "function";
 function contentParts(content) {
@@ -21707,38 +21893,38 @@ function userTextParts(text, bots, referenceLabels = []) {
   return parts;
 }
 function UserText({ text, bots, referenceLabels, skillNames, references, actions }) {
-  return userTextParts(text, bots, referenceLabels).map((part, index) => part.bot ? (0, import_react54.createElement)(
+  return userTextParts(text, bots, referenceLabels).map((part, index) => part.bot ? (0, import_react55.createElement)(
     "button",
     { key: index, type: "button", className: "bt-umention", title: `@${part.bot.name}`, onClick: () => actions.openSession(part.bot.id) },
-    (0, import_react54.createElement)(BotMark, { bot: part.bot, size: 16 }),
+    (0, import_react55.createElement)(BotMark, { bot: part.bot, size: 16 }),
     part.label
-  ) : (0, import_react54.createElement)(import_react54.Fragment, { key: index }, ui.projectUserText(part.text, referenceLabels, skillNames, "skill", references)));
+  ) : (0, import_react55.createElement)(import_react55.Fragment, { key: index }, ui.projectUserText(part.text, referenceLabels, skillNames, "skill", references)));
 }
 function Attachments({ attachments, renderMessageImages }) {
   const compact2 = attachments.length > 1;
-  return (0, import_react54.createElement)("div", { className: "bt-uattach" }, attachments.map((block, index) => {
+  return (0, import_react55.createElement)("div", { className: "bt-uattach" }, attachments.map((block, index) => {
     if (block.type === "image") {
-      return renderMessageImages ? (0, import_react54.createElement)(import_react54.Fragment, { key: index }, renderMessageImages({ images: [{ attachment: block.attachment }], align: "end", compact: compact2 })) : null;
+      return renderMessageImages ? (0, import_react55.createElement)(import_react55.Fragment, { key: index }, renderMessageImages({ images: [{ attachment: block.attachment }], align: "end", compact: compact2 })) : null;
     }
     const file = block.attachment;
     const meta = [ui.fileExtension?.(file.name)?.toUpperCase().slice(0, 8), ui.fileSizeText?.(file.bytes)].filter(Boolean).join(" · ");
-    return (0, import_react54.createElement)(
+    return (0, import_react55.createElement)(
       "span",
       { key: index, className: "bt-ufile", title: file.name },
-      ui.FileTypeIcon ? (0, import_react54.createElement)(ui.FileTypeIcon, { path: file.name, className: "bt-ufile-icon" }) : null,
-      (0, import_react54.createElement)("span", { className: "bt-ufile-text" }, (0, import_react54.createElement)("span", { className: "bt-ufile-name" }, file.name), meta ? (0, import_react54.createElement)("span", { className: "bt-ufile-meta" }, meta) : null)
+      ui.FileTypeIcon ? (0, import_react55.createElement)(ui.FileTypeIcon, { path: file.name, className: "bt-ufile-icon" }) : null,
+      (0, import_react55.createElement)("span", { className: "bt-ufile-text" }, (0, import_react55.createElement)("span", { className: "bt-ufile-name" }, file.name), meta ? (0, import_react55.createElement)("span", { className: "bt-ufile-meta" }, meta) : null)
     );
   }));
 }
 function CopyButton({ text }) {
-  const [copied, setCopied] = (0, import_react54.useState)(false);
+  const [copied, setCopied] = (0, import_react55.useState)(false);
   const copy2 = () => {
     void navigator.clipboard?.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1e3);
     });
   };
-  return (0, import_react54.createElement)("button", { type: "button", className: "bt-tool", "aria-label": copied ? t("Copied") : t("Copy"), title: copied ? t("Copied") : t("Copy"), onClick: copy2 }, copied ? (0, import_react54.createElement)(CheckIcon) : (0, import_react54.createElement)(CopyIcon));
+  return (0, import_react55.createElement)("button", { type: "button", className: "bt-tool", "aria-label": copied ? t("Copied") : t("Copy"), title: copied ? t("Copied") : t("Copy"), onClick: copy2 }, copied ? (0, import_react55.createElement)(CheckIcon) : (0, import_react55.createElement)(CopyIcon));
 }
 var clock3 = (time) => typeof time === "number" ? new Date(time).toLocaleTimeString(dateLocale(), { hour: "numeric", minute: "2-digit" }) : void 0;
 function UserMessageCell({ node, sessionId, useRoster, actions, renderMessageImages, openFile, openSkill }) {
@@ -21750,10 +21936,10 @@ function UserMessageCell({ node, sessionId, useRoster, actions, renderMessageIma
   const steering = node.kind === "steering";
   const sentAt = Number.isFinite(data.time) ? messageClock(data.time) : void 0;
   const { shown, folded, control } = useFold(text, { markdown: false });
-  const body = (0, import_react54.createElement)(UserText, { text: shown, bots: mentionableBots(roster, sessionId), referenceLabels, skillNames: data.skillNames ?? [], references, actions });
-  const row = (0, import_react54.useRef)(null);
-  const [toolsOpen, setToolsOpen] = (0, import_react54.useState)(false);
-  (0, import_react54.useEffect)(() => {
+  const body = (0, import_react55.createElement)(UserText, { text: shown, bots: mentionableBots(roster, sessionId), referenceLabels, skillNames: data.skillNames ?? [], references, actions });
+  const row = (0, import_react55.useRef)(null);
+  const [toolsOpen, setToolsOpen] = (0, import_react55.useState)(false);
+  (0, import_react55.useEffect)(() => {
     if (!toolsOpen) return void 0;
     const onDown = (event) => {
       if (!row.current?.contains(event.target)) setToolsOpen(false);
@@ -21769,24 +21955,24 @@ function UserMessageCell({ node, sessionId, useRoster, actions, renderMessageIma
     if (!noHover() || event.target instanceof Element && event.target.closest("a,button,input,textarea,select,pre,code,[role=button],[role=link]")) return;
     setToolsOpen((value) => !value);
   };
-  return (0, import_react54.createElement)(
+  return (0, import_react55.createElement)(
     "div",
     { ref: row, className: "bt-umsg", "data-steering": steering || void 0 },
-    (0, import_react54.createElement)(
+    (0, import_react55.createElement)(
       "div",
       { className: "bt-ustack" },
-      attachments.length > 0 ? (0, import_react54.createElement)(Attachments, { attachments, renderMessageImages }) : null,
-      text !== "" || rest.length > 0 ? (0, import_react54.createElement)(
+      attachments.length > 0 ? (0, import_react55.createElement)(Attachments, { attachments, renderMessageImages }) : null,
+      text !== "" || rest.length > 0 ? (0, import_react55.createElement)(
         "div",
         { className: "bt-ubody", title: clock3(data.time), "data-folded": folded || void 0, onClick: tapTools },
-        control ? (0, import_react54.createElement)("div", { className: "bt-fold-body" }, body) : body,
+        control ? (0, import_react55.createElement)("div", { className: "bt-fold-body" }, body) : body,
         control,
-        rest.map((block, index) => ui.JsonBlock ? (0, import_react54.createElement)(ui.JsonBlock, { key: index, label: t("Content"), payload: block }) : null)
+        rest.map((block, index) => ui.JsonBlock ? (0, import_react55.createElement)(ui.JsonBlock, { key: index, label: t("Content"), payload: block }) : null)
       ) : null,
-      referenceLabels.length > 0 ? (0, import_react54.createElement)("div", { className: "bt-urefs" }, t("Referenced {labels}", { labels: referenceLabels.join(t(", ")) })) : null,
-      sentAt ? (0, import_react54.createElement)("div", { className: "bt-utime", title: clockLabel(data.time) }, sentAt) : null
+      referenceLabels.length > 0 ? (0, import_react55.createElement)("div", { className: "bt-urefs" }, t("Referenced {labels}", { labels: referenceLabels.join(t(", ")) })) : null,
+      sentAt ? (0, import_react55.createElement)("div", { className: "bt-utime", title: clockLabel(data.time) }, sentAt) : null
     ),
-    text === "" ? null : (0, import_react54.createElement)("div", { className: "bt-utools", "data-open": toolsOpen || void 0 }, (0, import_react54.createElement)(CopyButton, { text }))
+    text === "" ? null : (0, import_react55.createElement)("div", { className: "bt-utools", "data-open": toolsOpen || void 0 }, (0, import_react55.createElement)(CopyButton, { text }))
   );
 }
 var USER_MESSAGE_CSS = `

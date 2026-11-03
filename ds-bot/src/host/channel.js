@@ -83,6 +83,7 @@ export function install(rt) {
     memory: rt.memoryEnabled !== false,
     // Set while another dsh host holds the team (store.js): why this one cannot change it.
     readOnly: rt.readOnly() ?? null,
+    auth: rt.authView?.() ?? null,
   })
   // What changes without a new revision, sent with every state answer. `learning`:
   // each Bot's pending skill proposals. `memoryNews`:
@@ -430,6 +431,13 @@ export function install(rt) {
         case 'learning-answer':
           await rt.load()
           return ok(await rt.learningEndpoint(endpoint, body))
+        case 'auth-view':
+        case 'auth-start':
+        case 'auth-cancel':
+        case 'auth-sign-out':
+        case 'auth-dev-login':
+          await rt.load()
+          return ok(await rt.authEndpoint(endpoint, body))
         case 'answer-question': {
           if (typeof body.sessionId !== 'string') return fail('Nothing to send', 'bot/invalid')
           await rt.load()
