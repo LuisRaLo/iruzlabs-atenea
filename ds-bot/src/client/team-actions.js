@@ -138,7 +138,7 @@ export function teamActions({ call, after, partFor, roster, ui, live, cards, hel
     secretCancel: requestId => after(call('secret-cancel', { requestId })),
     secretUpdate: (name, { scope, purpose } = {}) => after(call('secret-update', { name, scope, purpose })),
     secretDelete: name => after(call('secret-delete', { name })),
-    connectorConnect: (id, token) => after(call('connector-connect', { id, token })),
+    connectorConnect: (id, token, extra = {}) => after(call('connector-connect', { id, token, ...extra })),
     connectorDisconnect: id => after(call('connector-disconnect', { id })),
     connectorRetry: id => after(call('connector-retry', { id })),
     saveCapability: capability => after(call('capability-save', capability)),

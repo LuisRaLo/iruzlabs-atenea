@@ -1,27 +1,47 @@
-// Connectors: outside services every Bot can use. GitHub is the first one. Its tools come
-// from GitHub's MCP server through DSH's own MCP client, mounted on the plugin context,
-// so every Bot and Session gets them as mcp__github__<tool>.
+// Connectors: outside services every Bot can use (GitHub, Linear, Grafana Cloud, Google Workspace).
+// Tools come from their respective MCP servers through DSH's own MCP client, mounted on the
+// plugin context, so every Bot and Session gets them under their qualified namespace.
 //
-// The token is the GITHUB_TOKEN secret (secrets.js keeps it, redacts it, and offers it to
-// the shell). It reaches GitHub only in the MCP request headers, built here in memory,
-// never written to the DSH profile. A new token is shared with no Bot's shell: the tools
-// do not need it there, and a Bot that reads a planted instruction in an issue could
-// send it anywhere. The Secrets page can still share it. Signing in is `signIn` alone, so a browser login can
-// take its place later without touching the mount.
+// Tokens and credentials are stored securely in secrets, redacted in logs, and kept out of
+// ordinary Bot shells.
+import { writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 export const GITHUB = 'github'
 export const GITHUB_SECRET = 'GITHUB_TOKEN'
-const MCP_CLIENT = '@deepseek-ai/dsh-mcp-client'
-const DEFAULTS = {
-  url: 'https://api.githubcopilot.com/mcp/',
-  api: 'https://api.github.com',
-  toolsets: 'context,repos,issues,pull_requests',
-}
-const CHECK_TIMEOUT_MS = 15_000
-const INSECURE = 'GitHub addresses must start with https://'
+export const LINEAR = 'linear'
+export const LINEAR_SECRET = 'LINEAR_API_KEY'
+export const GRAFANA = 'grafana'
+export const GRAFANA_SECRET = 'GRAFANA_SERVICE_ACCOUNT_TOKEN'
+export const GOOGLE_WORKSPACE = 'google-workspace'
+export const GOOGLE_WORKSPACE_SECRET = 'GOOGLE_WORKSPACE_CREDENTIALS'
 
-// Asks GitHub who the token belongs to. Any token GitHub accepts passes.
-export async function signIn(token, { api = DEFAULTS.api, fetch: request = fetch } = {}) {
+const MCP_CLIENT = '@deepseek-ai/dsh-mcp-client'
+const CHECK_TIMEOUT_MS = 15_000
+const INSECURE_GITHUB = 'GitHub addresses must start with https://'
+
+const DEFAULTS = {
+  [GITHUB]: {
+    url: 'https://api.githubcopilot.com/mcp/',
+    api: 'https://api.github.com',
+    toolsets: 'context,repos,issues,pull_requests',
+  },
+  [LINEAR]: {
+    api: 'https://api.linear.app/graphql',
+    command: 'npx',
+    args: ['-y', '@emmett.deen/linear-mcp-server'],
+  },
+  [GRAFANA]: {
+    command: 'npx',
+    args: ['-y', '@leval/mcp-grafana'],
+  },
+  [GOOGLE_WORKSPACE]: {
+    command: 'npx',
+    args: ['-y', 'google-workspace-mcp'],
+  },
+}
+
+export async function signInGithub(token, { api = DEFAULTS[GITHUB].api, fetch: request = fetch } = {}) {
   let response
   try {
     response = await request(`${api.replace(/\/$/, '')}/user`, {
@@ -38,118 +58,323 @@ export async function signIn(token, { api = DEFAULTS.api, fetch: request = fetch
   return { login: user.login }
 }
 
+export async function signInLinear(token, { api = DEFAULTS[LINEAR].api, fetch: request = fetch } = {}) {
+  let response
+  try {
+    response = await request(api, {
+      method: 'POST',
+      headers: { Authorization: token, 'Content-Type': 'application/json', 'User-Agent': 'ds-bot' },
+      body: JSON.stringify({ query: '{ viewer { id name email } }' }),
+      signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
+    })
+  } catch {
+    throw new Error('Could not reach Linear')
+  }
+  if (response.status === 401 || response.status === 403) throw new Error('Linear did not accept this API key')
+  if (!response.ok) throw new Error(`Linear answered ${response.status}`)
+  const json = await response.json().catch(() => ({}))
+  if (json.errors?.length) {
+    const msg = json.errors[0]?.message ?? ''
+    if (/auth|unauthorized|forbidden|token|key/i.test(msg)) throw new Error('Linear did not accept this API key')
+    throw new Error(`Linear: ${msg}`)
+  }
+  const viewer = json.data?.viewer
+  const login = viewer?.name || viewer?.email || viewer?.id
+  if (!login) throw new Error('Linear did not say who this key belongs to')
+  return { login }
+}
+
+export async function signInGrafana(token, { url, fetch: request = fetch } = {}) {
+  const base = String(url ?? '').trim().replace(/\/$/, '')
+  if (!base || !/^https?:\/\//i.test(base)) throw new Error('Enter a valid Grafana URL (starting with http:// or https://)')
+  let response
+  try {
+    response = await request(`${base}/api/org`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'User-Agent': 'ds-bot' },
+      signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
+    })
+  } catch {
+    throw new Error('Could not reach Grafana')
+  }
+  if (response.status === 401 || response.status === 403) throw new Error('Grafana did not accept this token')
+  if (!response.ok) throw new Error(`Grafana answered ${response.status}`)
+  const org = await response.json().catch(() => ({}))
+  const login = org?.name || base.replace(/^https?:\/\//, '')
+  return { login }
+}
+
+export async function signInGoogleWorkspace(credentialsInput) {
+  const trimmed = String(credentialsInput ?? '').trim()
+  if (!trimmed) throw new Error('Paste Google Workspace OAuth credentials JSON or provide a valid path')
+  let parsed = null
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      parsed = JSON.parse(trimmed)
+    } catch {
+      throw new Error('Invalid JSON format for Google Workspace credentials')
+    }
+  } else {
+    const { existsSync, readFileSync } = await import('node:fs')
+    if (existsSync(trimmed)) {
+      try {
+        parsed = JSON.parse(readFileSync(trimmed, 'utf8'))
+      } catch {
+        throw new Error('Could not read credentials JSON from the provided path')
+      }
+    } else {
+      throw new Error('The credentials file does not exist. Provide valid JSON or an existing file path.')
+    }
+  }
+  const root = parsed.installed ?? parsed.web ?? parsed
+  const clientId = root.client_id
+  const clientEmail = parsed.client_email
+  const projectId = root.project_id ?? parsed.project_id
+  if (!clientId && !clientEmail && !projectId) {
+    throw new Error('Google Workspace credentials must contain client_id or client_email')
+  }
+  const login = projectId ? `Project: ${projectId}` : clientEmail ?? 'OAuth App'
+  return { login, credentialsJson: JSON.stringify(parsed) }
+}
+
+// Backward-compatible alias for existing tests
+export const signIn = signInGithub
+
+const CONNECTOR_DEFS = {
+  [GITHUB]: {
+    id: GITHUB,
+    name: 'GitHub',
+    secret: GITHUB_SECRET,
+    purpose: 'GitHub connector',
+    validate: (options) => {
+      const insecure = options !== null && [options.url, options.api].some(address => !/^https:\/\//i.test(String(address)))
+      if (insecure) throw new Error(INSECURE_GITHUB)
+    },
+    signIn: async (token, options) => signInGithub(token, { api: options.api }),
+    mountConfig: (token, options) => ({
+      transport: 'streamable-http',
+      serverName: GITHUB,
+      url: options.url,
+      headers: { Authorization: `Bearer ${token}`, 'X-MCP-Toolsets': options.toolsets },
+      failOnStartupError: true,
+    }),
+  },
+  [LINEAR]: {
+    id: LINEAR,
+    name: 'Linear',
+    secret: LINEAR_SECRET,
+    purpose: 'Linear connector',
+    validate: () => {},
+    signIn: async (token, options) => signInLinear(token, { api: options.api }),
+    mountConfig: (token, options) => ({
+      transport: 'stdio',
+      serverName: LINEAR,
+      command: options.command ?? 'npx',
+      args: options.args ?? ['-y', '@emmett.deen/linear-mcp-server'],
+      env: { LINEAR_API_KEY: token, ...(options.env ?? {}) },
+      failOnStartupError: true,
+    }),
+  },
+  [GRAFANA]: {
+    id: GRAFANA,
+    name: 'Grafana Cloud',
+    secret: GRAFANA_SECRET,
+    purpose: 'Grafana connector',
+    validate: (options, stateEntry, body) => {
+      const url = body?.url ?? stateEntry?.url ?? options?.url
+      if (!url) throw new Error('Enter the Grafana instance URL')
+    },
+    signIn: async (token, options, body) => {
+      const url = body?.url ?? options?.url
+      return signInGrafana(token, { url })
+    },
+    mountConfig: (token, options, stateEntry) => {
+      const url = stateEntry?.url ?? options.url ?? 'https://grafana.net'
+      return {
+        transport: 'stdio',
+        serverName: GRAFANA,
+        command: options.command ?? 'npx',
+        args: options.args ?? ['-y', '@leval/mcp-grafana'],
+        env: { GRAFANA_URL: url, GRAFANA_SERVICE_ACCOUNT_TOKEN: token, ...(options.env ?? {}) },
+        failOnStartupError: true,
+      }
+    },
+  },
+  [GOOGLE_WORKSPACE]: {
+    id: GOOGLE_WORKSPACE,
+    name: 'Google Workspace',
+    secret: GOOGLE_WORKSPACE_SECRET,
+    purpose: 'Google Workspace connector',
+    validate: () => {},
+    signIn: async (token) => signInGoogleWorkspace(token),
+    mountConfig: (token, options, stateEntry, rt) => {
+      let credsPath = token
+      if (token.startsWith('{')) {
+        const target = join(rt.home, 'google-workspace-credentials.json')
+        writeFileSync(target, token, { mode: 0o600 })
+        credsPath = target
+      }
+      return {
+        transport: 'stdio',
+        serverName: 'google_workspace',
+        command: options.command ?? 'npx',
+        args: options.args ?? ['-y', 'google-workspace-mcp'],
+        env: { GOOGLE_APPLICATION_CREDENTIALS: credsPath, ...(options.env ?? {}) },
+        failOnStartupError: true,
+      }
+    },
+  },
+}
+
 export function install(rt) {
   const { ctx, state } = rt
-  const options = rt.config.github === false ? null : { ...DEFAULTS, ...rt.config.github }
-  const insecure = options !== null && [options.url, options.api].some(address => !/^https:\/\//i.test(String(address)))
-  // `token` is what the current mount was made with, so a changed secret mounts again.
-  let mount = null
-  let status = { state: 'off' }
+  const isTest = Boolean(process.env.DSH_HARNESS)
+
+  const getOptions = (id) => {
+    if (rt.config[id] === false) return null
+    if (isTest && rt.config[id] === undefined && id !== GITHUB) return null
+    const defaults = DEFAULTS[id] ?? {}
+    return { ...defaults, ...(typeof rt.config[id] === 'object' ? rt.config[id] : {}) }
+  }
+
+  const activeConnectors = () => Object.keys(CONNECTOR_DEFS)
+    .filter(id => getOptions(id) !== null)
+    .map(id => CONNECTOR_DEFS[id])
+
+  const mounts = new Map()
+  const statuses = new Map()
   let queue = Promise.resolve()
   let stopped = false
 
-  const unmount = async () => {
-    const fiber = mount?.fiber
-    mount = null
+  const unmountOne = async (id) => {
+    const fiber = mounts.get(id)?.fiber
+    mounts.delete(id)
     if (fiber !== undefined) await Promise.resolve().then(() => fiber.dispose()).catch(() => {})
   }
 
-  // The MCP client wraps the server's answer (a 401, say) as the cause.
+  const unmountAll = async () => {
+    const list = [...mounts.keys()]
+    for (const id of list) await unmountOne(id)
+  }
+
   const reason = (error) => {
     const text = [error, error?.cause].filter(Boolean).map(part => String(part?.message ?? part)).join(': ')
     return rt.redactSecrets(text || 'error').slice(0, 300)
   }
 
-  async function reconcile(force) {
-    const token = options !== null && !stopped ? rt.secretValue(GITHUB_SECRET) : undefined
-    if (!force && mount !== null && mount.token === token) return
-    await unmount()
+  async function reconcileOne(id, force) {
+    const def = CONNECTOR_DEFS[id]
+    if (!def) return
+    const options = getOptions(id)
+    if (options === null || stopped) {
+      await unmountOne(id)
+      statuses.set(id, { state: 'off' })
+      return
+    }
+    const token = rt.secretValue(def.secret)
+    const stateEntry = state.connectors?.[id]
+    const current = mounts.get(id)
+    const currentUrl = stateEntry?.url ?? null
+    if (!force && current !== undefined && current.token === token && (current.url ?? null) === currentUrl) return
+    await unmountOne(id)
     if (token === undefined) {
-      status = { state: 'off' }
+      statuses.set(id, { state: 'off' })
       return
     }
-    if (insecure) {
-      mount = { token }
-      status = { state: 'error', error: INSECURE }
+    try {
+      def.validate(options, stateEntry)
+    } catch (err) {
+      mounts.set(id, { token, url: currentUrl })
+      statuses.set(id, { state: 'error', error: err.message })
       return
     }
-    status = { state: 'connecting' }
+    statuses.set(id, { state: 'connecting' })
     const loader = ctx.get?.('loader')
     if (typeof loader?.import !== 'function' || typeof ctx.plugin !== 'function') {
-      mount = { token }
-      status = { state: 'error', error: 'This DSH cannot load connectors' }
+      mounts.set(id, { token, url: currentUrl })
+      statuses.set(id, { state: 'error', error: 'This DSH cannot load connectors' })
       return
     }
     try {
       const exports = await loader.import(MCP_CLIENT)
       const plugin = loader.unwrapExports?.(exports) ?? exports?.default ?? exports
-      const fiber = ctx.plugin(plugin, {
-        transport: 'streamable-http',
-        serverName: GITHUB,
-        url: options.url,
-        headers: { Authorization: `Bearer ${token}`, 'X-MCP-Toolsets': options.toolsets },
-        failOnStartupError: true,
-      })
-      mount = { token, fiber }
+      const fiber = ctx.plugin(plugin, def.mountConfig(token, options, stateEntry, rt))
+      mounts.set(id, { token, fiber, url: currentUrl })
       await fiber.await()
-      if (mount?.fiber !== fiber) return
-      status = { state: 'ready' }
+      if (mounts.get(id)?.fiber !== fiber) return
+      statuses.set(id, { state: 'ready' })
     } catch (error) {
-      await unmount()
-      mount = { token }
-      status = { state: 'error', error: reason(error) }
-      rt.warn('ds-bot: GitHub connector failed: %s', status.error)
+      await unmountOne(id)
+      mounts.set(id, { token, url: currentUrl })
+      statuses.set(id, { state: 'error', error: reason(error) })
+      rt.warn('ds-bot: %s connector failed: %s', def.name, statuses.get(id).error)
     }
   }
 
-  // One change at a time; `force` connects again even when the token is the same.
-  const sync = (force = false) => {
-    queue = queue.then(() => reconcile(force)).catch(error => { rt.warn('ds-bot: connectors: %s', reason(error)) })
+  async function reconcile(force) {
+    for (const def of activeConnectors()) {
+      await reconcileOne(def.id, force)
+    }
+  }
+
+  const sync = (force = false, id = null) => {
+    queue = queue.then(() => (id ? reconcileOne(id, force) : reconcile(force))).catch(error => { rt.warn('ds-bot: connectors: %s', reason(error)) })
     return queue
   }
 
-  const connectorsView = () => options === null ? [] : [{
-    id: GITHUB,
-    name: 'GitHub',
-    state: status.state,
-    ...(status.error !== undefined ? { error: status.error } : {}),
-    account: rt.secretValue(GITHUB_SECRET) !== undefined ? state.connectors?.[GITHUB]?.login ?? null : null,
-  }]
+  const connectorsView = () => activeConnectors().map(def => {
+    const status = statuses.get(def.id) ?? { state: 'off' }
+    const hasSecret = rt.secretValue(def.secret) !== undefined
+    const info = state.connectors?.[def.id]
+    return {
+      id: def.id,
+      name: def.name,
+      state: status.state,
+      ...(status.error !== undefined ? { error: status.error } : {}),
+      account: hasSecret ? info?.login ?? null : null,
+      ...(info?.url ? { url: info.url } : {}),
+    }
+  })
 
   const known = id => {
-    if (options === null || id !== GITHUB) throw new Error('No such connector')
+    const def = CONNECTOR_DEFS[id]
+    if (!def || getOptions(id) === null) throw new Error('No such connector')
+    return def
   }
 
   const endpoints = {
     async 'connector-connect'(body) {
-      known(body.id)
+      const def = known(body.id)
       const token = typeof body.token === 'string' ? body.token.trim() : ''
       if (token === '') throw new Error('Paste a token first')
-      if (insecure) throw new Error(INSECURE)
+      const options = getOptions(body.id)
+      def.validate(options, state.connectors?.[body.id], body)
       await rt.loadSecrets()
-      const kept = rt.secretValue(GITHUB_SECRET) !== undefined
-      const { login } = await signIn(token, { api: options.api })
-      await rt.secretEndpoint('secret-set', { name: GITHUB_SECRET, value: token, purpose: 'GitHub connector', ...(kept ? {} : { scope: [] }) })
-      state.connectors = { ...state.connectors, [GITHUB]: { login, connectedAt: Date.now() } }
+      const kept = rt.secretValue(def.secret) !== undefined
+      const { login } = await def.signIn(token, options, body)
+      await rt.secretEndpoint('secret-set', { name: def.secret, value: token, purpose: def.purpose, ...(kept ? {} : { scope: [] }) })
+      state.connectors = {
+        ...state.connectors,
+        [body.id]: { login, connectedAt: Date.now(), ...(body.url ? { url: String(body.url).trim() } : {}) },
+      }
       await rt.save()
-      await sync()
+      await sync(false, body.id)
       return connectorsView()
     },
     async 'connector-disconnect'(body) {
-      known(body.id)
+      const def = known(body.id)
       await rt.loadSecrets()
-      if (rt.secretValue(GITHUB_SECRET) !== undefined) await rt.secretEndpoint('secret-delete', { name: GITHUB_SECRET })
-      if (state.connectors?.[GITHUB] !== undefined) {
-        delete state.connectors[GITHUB]
+      if (rt.secretValue(def.secret) !== undefined) await rt.secretEndpoint('secret-delete', { name: def.secret })
+      if (state.connectors?.[body.id] !== undefined) {
+        delete state.connectors[body.id]
         await rt.save()
       }
-      await sync()
+      await sync(false, body.id)
       return connectorsView()
     },
     async 'connector-retry'(body) {
       known(body.id)
       await rt.loadSecrets()
-      await sync(true)
+      await sync(true, body.id)
       return connectorsView()
     },
   }
@@ -161,7 +386,7 @@ export function install(rt) {
     void rt.loadSecrets().then(() => sync())
     return () => {
       stopped = true
-      void unmount()
+      void unmountAll()
     }
   }, 'ds-bot: connectors')
 

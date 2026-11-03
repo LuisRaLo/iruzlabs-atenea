@@ -159,6 +159,18 @@ var ZH = {
   "GitHub addresses must start with https://": "GitHub 地址必须以 https:// 开头",
   "This DSH cannot load connectors": "这个 DSH 不能加载连接器",
   "No such connector": "没有这个连接器",
+  "Issues, projects, cycles, and teams": "问题、项目、周期与团队",
+  "Dashboards, alerts, Prometheus metrics, and Loki logs": "仪表盘、告警、Prometheus 指标与 Loki 日志",
+  "Gmail, Calendar, Drive, Docs, Sheets, and Slides": "Gmail、日历、云端硬盘、文档、表格与幻灯片",
+  "Create an API key in Linear": "去 Linear 生成 API Key",
+  "Grafana Service Accounts documentation": "Grafana 服务账号文档",
+  "Google Cloud Console Credentials": "Google Cloud 控制台凭据",
+  "Linear API key": "Linear API Key",
+  "Service account token (glsa_...)": "服务账号 Token (glsa_...)",
+  "Credentials (JSON or path to credentials.json)": "凭据 (JSON 内容或 credentials.json 路径)",
+  "Grafana instance URL (e.g. https://myorg.grafana.net)": "Grafana 实例 URL (例如 https://myorg.grafana.net)",
+  Token: "Token",
+  Documentation: "文档",
   "Classic Agent mode": "经典 Agent 模式",
   "Switch": "切换",
   "Switch to classic Agent mode": "切换经典 Agent 模式",
@@ -1855,7 +1867,7 @@ function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards
     secretCancel: (requestId) => after(call2("secret-cancel", { requestId })),
     secretUpdate: (name, { scope, purpose } = {}) => after(call2("secret-update", { name, scope, purpose })),
     secretDelete: (name) => after(call2("secret-delete", { name })),
-    connectorConnect: (id, token) => after(call2("connector-connect", { id, token })),
+    connectorConnect: (id, token, extra = {}) => after(call2("connector-connect", { id, token, ...extra })),
     connectorDisconnect: (id) => after(call2("connector-disconnect", { id })),
     connectorRetry: (id) => after(call2("connector-retry", { id })),
     saveCapability: (capability) => after(call2("capability-save", capability)),
@@ -17108,14 +17120,56 @@ button.bt-us-row:hover{background:var(--bt-hover)}
 
 // src/client/connectors.js
 var import_react42 = require("react");
-var TOKEN_URL = "https://github.com/settings/personal-access-tokens/new";
 var GitHubMark = () => (0, import_react42.createElement)(
   "svg",
   { width: 20, height: 20, viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": true },
   (0, import_react42.createElement)("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" })
 );
-var MARKS = { github: GitHubMark };
-var ABOUT = { github: () => t("Repositories, issues, and pull requests") };
+var LinearMark = () => (0, import_react42.createElement)(
+  "svg",
+  { width: 20, height: 20, viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": true },
+  (0, import_react42.createElement)("path", { d: "M1.64 8.7a6.36 6.36 0 0 1 6.36-6.36c.64 0 1.25.1 1.83.28L2.4 10.05a6.3 6.3 0 0 1-.76-1.35zm.74 3.03l9.4-9.4a6.34 6.34 0 0 1 1.88 4.31 6.36 6.36 0 0 1-6.36 6.36 6.3 6.3 0 0 1-4.92-2.27zm10.74-5.37c-.03-.22-.08-.43-.14-.64l1.37-1.37a6.4 6.4 0 0 1 .65 3.65c0 .35-.03.7-.09 1.03l-1.79-2.67z" })
+);
+var GrafanaMark = () => (0, import_react42.createElement)(
+  "svg",
+  { width: 20, height: 20, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": true },
+  (0, import_react42.createElement)("path", { d: "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5a3.5 3.5 0 1 1 3.5-3.5 3.5 3.5 0 0 1-3.5 3.5zm3.8-6.8a5.5 5.5 0 0 0-7.6-1.5 5.4 5.4 0 0 0-2 7.5 1.5 1.5 0 0 1-2.4 1.8 8.4 8.4 0 0 1 3.1-11.6 8.5 8.5 0 0 1 11.7 2.3 1.5 1.5 0 0 1-2.8 1.5z" })
+);
+var GoogleWorkspaceMark = () => (0, import_react42.createElement)(
+  "svg",
+  { width: 20, height: 20, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": true },
+  (0, import_react42.createElement)("path", { d: "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5a3.5 3.5 0 1 1 3.5-3.5 3.5 3.5 0 0 1-3.5 3.5zm7.56-4.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" })
+);
+var MARKS = {
+  github: GitHubMark,
+  linear: LinearMark,
+  grafana: GrafanaMark,
+  "google-workspace": GoogleWorkspaceMark
+};
+var ABOUT = {
+  github: () => t("Repositories, issues, and pull requests"),
+  linear: () => t("Issues, projects, cycles, and teams"),
+  grafana: () => t("Dashboards, alerts, Prometheus metrics, and Loki logs"),
+  "google-workspace": () => t("Gmail, Calendar, Drive, Docs, Sheets, and Slides")
+};
+var DOCS_URLS = {
+  github: "https://github.com/settings/personal-access-tokens/new",
+  linear: "https://linear.app/settings/api",
+  grafana: "https://grafana.com/docs/grafana/latest/administration/service-accounts/",
+  "google-workspace": "https://console.cloud.google.com/apis/credentials"
+};
+var LINK_LABELS = {
+  github: () => t("Create a token on GitHub"),
+  linear: () => t("Create an API key in Linear"),
+  grafana: () => t("Grafana Service Accounts documentation"),
+  "google-workspace": () => t("Google Cloud Console Credentials")
+};
+var TOKEN_LABELS = {
+  github: () => t("GitHub token"),
+  linear: () => t("Linear API key"),
+  grafana: () => t("Service account token (glsa_...)"),
+  "google-workspace": () => t("Credentials (JSON or path to credentials.json)")
+};
 function statusText2(connector) {
   if (connector.state === "connecting") return t("Connecting…");
   if (connector.state === "error") return t("Could not connect: {error}", { error: connector.error ?? "" });
@@ -17125,6 +17179,7 @@ function statusText2(connector) {
 function ConnectorRow({ connector, actions }) {
   const [form, setForm] = (0, import_react42.useState)(false);
   const [token, setToken] = (0, import_react42.useState)("");
+  const [url, setUrl] = (0, import_react42.useState)(connector.url ?? "");
   const [busy, setBusy] = (0, import_react42.useState)(false);
   const [error, setError] = (0, import_react42.useState)(null);
   const run2 = (task, after) => {
@@ -17136,7 +17191,8 @@ function ConnectorRow({ connector, actions }) {
   };
   const connect = () => {
     if (busy || token.trim() === "") return;
-    void run2(actions.connectorConnect(connector.id, token), () => {
+    const extra = connector.id === "grafana" ? { url: url.trim() } : {};
+    void run2(actions.connectorConnect(connector.id, token, extra), () => {
       setToken("");
       setForm(false);
     });
@@ -17168,17 +17224,36 @@ function ConnectorRow({ connector, actions }) {
     !on && form ? (0, import_react42.createElement)(
       "div",
       { className: "bt-connector-form" },
-      (0, import_react42.createElement)("label", { className: "bt-q-field bt-secret-field" }, (0, import_react42.createElement)(MaskedInput, { value: token, onChange: setToken, onEnter: connect, label: t("GitHub token"), autoFocus: true })),
+      connector.id === "grafana" ? (0, import_react42.createElement)(
+        "label",
+        { className: "bt-q-field bt-secret-field" },
+        (0, import_react42.createElement)("input", {
+          className: "bt-input",
+          type: "url",
+          placeholder: t("Grafana instance URL (e.g. https://myorg.grafana.net)"),
+          value: url,
+          onChange: (e) => setUrl(e.target.value),
+          spellCheck: false,
+          autoFocus: true
+        })
+      ) : null,
+      (0, import_react42.createElement)("label", { className: "bt-q-field bt-secret-field" }, (0, import_react42.createElement)(MaskedInput, {
+        value: token,
+        onChange: setToken,
+        onEnter: connect,
+        label: TOKEN_LABELS[connector.id]?.() ?? t("Token"),
+        autoFocus: connector.id !== "grafana"
+      })),
       (0, import_react42.createElement)(
         "div",
         { className: "bt-connector-form-row" },
-        (0, import_react42.createElement)("a", { className: "bt-connector-link", href: TOKEN_URL, target: "_blank", rel: "noopener noreferrer" }, t("Create a token on GitHub")),
+        (0, import_react42.createElement)("a", { className: "bt-connector-link", href: DOCS_URLS[connector.id] ?? DOCS_URLS.github, target: "_blank", rel: "noopener noreferrer" }, LINK_LABELS[connector.id]?.() ?? t("Documentation")),
         (0, import_react42.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: busy, onClick: () => {
           setForm(false);
           setToken("");
           setError(null);
         } }, t("Cancel")),
-        (0, import_react42.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: busy || token.trim() === "", onClick: connect }, busy ? t("Connecting…") : t("Connect"))
+        (0, import_react42.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: busy || token.trim() === "" || connector.id === "grafana" && url.trim() === "", onClick: connect }, busy ? t("Connecting…") : t("Connect"))
       )
     ) : null,
     error ? (0, import_react42.createElement)("div", { className: "bt-connector-error", role: "alert" }, error) : null

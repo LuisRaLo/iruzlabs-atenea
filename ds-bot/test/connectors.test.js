@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { apply } from '../index.js'
-import { signIn } from '../src/host/connectors.js'
+import { signIn, signInLinear, signInGrafana, signInGoogleWorkspace } from '../src/host/connectors.js'
 import { fakeContext } from './fake-ctx.js'
 
 const fresh = () => `ghp_${randomBytes(16).toString('hex')}`
@@ -41,7 +41,7 @@ const teamHome = () => {
 }
 
 // A loader that hands out a fake MCP client and records each mount.
-function setup({ fail = false, github = { api: 'https://gh.test' } } = {}) {
+function setup({ fail = false, github = { api: 'https://gh.test' }, linear = undefined, grafana = undefined, googleWorkspace = undefined } = {}) {
   const home = teamHome()
   const mounts = []
   const plugin = { name: 'mcp-client', apply() {} }
@@ -55,12 +55,12 @@ function setup({ fail = false, github = { api: 'https://gh.test' } } = {}) {
     const mount = { config, disposed: false }
     mounts.push(mount)
     return {
-      await: async () => { if (fail) throw new Error(`refused ${config.headers.Authorization}`) },
+      await: async () => { if (fail) throw new Error(`refused ${config.headers?.Authorization ?? config.env?.LINEAR_API_KEY ?? ''}`) },
       dispose: () => { mount.disposed = true },
     }
   }
   capture(ctx)
-  apply(ctx, { home, github })
+  apply(ctx, { home, github, ...(linear !== undefined ? { linear } : {}), ...(grafana !== undefined ? { grafana } : {}), ...(googleWorkspace !== undefined ? { 'google-workspace': googleWorkspace } : {}) })
   return { ctx, home, mounts }
 }
 
@@ -172,3 +172,78 @@ test('a GitHub address without https refuses to send the token', async (t) => {
   assert.equal(asked, false)
   assert.equal(mounts.length, 0)
 })
+
+test('signInLinear checks the API key against Linear GraphQL', async () => {
+  const valid = await signInLinear('lin_api_test', {
+    api: 'https://linear.test/graphql',
+    fetch: async () => answer(200, { data: { viewer: { name: 'Luis', email: 'luis@example.com' } } }),
+  })
+  assert.deepEqual(valid, { login: 'Luis' })
+  await assert.rejects(signInLinear('bad_key', {
+    api: 'https://linear.test/graphql',
+    fetch: async () => answer(401, {}),
+  }), /Linear did not accept this API key/)
+})
+
+test('connecting Linear mounts stdio MCP server with LINEAR_API_KEY', async (t) => {
+  const realFetch = globalThis.fetch
+  t.after(() => { globalThis.fetch = realFetch })
+  globalThis.fetch = async () => answer(200, { data: { viewer: { name: 'AteneaTeam' } } })
+  const { ctx, home, mounts } = setup({ linear: { api: 'https://linear.test/graphql' } })
+  t.after(async () => { await ctx.dispose(); rmSync(home, { recursive: true, force: true, maxRetries: 5 }) })
+
+  const connected = await call(ctx, 'connector-connect', { id: 'linear', token: 'lin_api_valid_123' })
+  assert.equal(connected.ok, true, JSON.stringify(connected))
+  const linearRow = connected.value.find(c => c.id === 'linear')
+  assert.equal(linearRow.state, 'ready')
+  assert.equal(linearRow.account, 'AteneaTeam')
+  assert.equal(mounts[0].config.serverName, 'linear')
+  assert.equal(mounts[0].config.transport, 'stdio')
+  assert.equal(mounts[0].config.env.LINEAR_API_KEY, 'lin_api_valid_123')
+})
+
+test('signInGrafana checks instance URL and token', async () => {
+  const valid = await signInGrafana('glsa_test', {
+    url: 'https://myorg.grafana.net',
+    fetch: async () => answer(200, { name: 'My Org' }),
+  })
+  assert.deepEqual(valid, { login: 'My Org' })
+  await assert.rejects(signInGrafana('glsa_test', { url: '' }), /valid Grafana URL/)
+})
+
+test('connecting Grafana mounts stdio MCP server with GRAFANA_URL and token', async (t) => {
+  const realFetch = globalThis.fetch
+  t.after(() => { globalThis.fetch = realFetch })
+  globalThis.fetch = async () => answer(200, { name: 'IruzCloud' })
+  const { ctx, home, mounts } = setup({ grafana: {} })
+  t.after(async () => { await ctx.dispose(); rmSync(home, { recursive: true, force: true, maxRetries: 5 }) })
+
+  const connected = await call(ctx, 'connector-connect', { id: 'grafana', token: 'glsa_abc', url: 'https://iruz.grafana.net' })
+  assert.equal(connected.ok, true, JSON.stringify(connected))
+  const grafanaRow = connected.value.find(c => c.id === 'grafana')
+  assert.equal(grafanaRow.state, 'ready')
+  assert.equal(grafanaRow.account, 'IruzCloud')
+  assert.equal(mounts[0].config.serverName, 'grafana')
+  assert.equal(mounts[0].config.transport, 'stdio')
+  assert.equal(mounts[0].config.env.GRAFANA_URL, 'https://iruz.grafana.net')
+  assert.equal(mounts[0].config.env.GRAFANA_SERVICE_ACCOUNT_TOKEN, 'glsa_abc')
+})
+
+test('signInGoogleWorkspace parses OAuth credentials JSON and connects', async (t) => {
+  const creds = JSON.stringify({ installed: { client_id: '123.apps.googleusercontent.com', project_id: 'atenea-prod' } })
+  const valid = await signInGoogleWorkspace(creds)
+  assert.equal(valid.login, 'Project: atenea-prod')
+
+  const { ctx, home, mounts } = setup({ googleWorkspace: {} })
+  t.after(async () => { await ctx.dispose(); rmSync(home, { recursive: true, force: true, maxRetries: 5 }) })
+
+  const connected = await call(ctx, 'connector-connect', { id: 'google-workspace', token: creds })
+  assert.equal(connected.ok, true, JSON.stringify(connected))
+  const gRow = connected.value.find(c => c.id === 'google-workspace')
+  assert.equal(gRow.state, 'ready')
+  assert.equal(gRow.account, 'Project: atenea-prod')
+  assert.equal(mounts[0].config.serverName, 'google_workspace')
+  assert.equal(mounts[0].config.transport, 'stdio')
+  assert.ok(mounts[0].config.env.GOOGLE_APPLICATION_CREDENTIALS)
+})
+
