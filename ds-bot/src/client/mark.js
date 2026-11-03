@@ -1,5 +1,5 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
-import { fnv1a, lookOf, shapeId, shapeOf, MASK_ID, nextMarkSerial, characterMarkup } from './characters.js'
+import { fnv1a, lookOf, shapeId, shapeOf, MASK_ID, nextMarkSerial, characterMarkup, ATENEA_AVATAR } from './characters.js'
 import { t } from './i18n.js'
 
 export { colorOf, lookOf } from './characters.js'
@@ -74,7 +74,7 @@ export function BotMark({ bot, look: given, size = 36, state = 'idle', live = fa
     onClick: pokeable ? () => setPoked(true) : undefined,
     onAnimationEnd: poked ? (event) => { if (/^bt-poke/.test(event.animationName)) setPoked(false) } : undefined,
   }
-  if (image) return h('span', common, h('img', { className: 'bt-mark-img', src: image, alt: '', draggable: false, onError: () => setBroken(image) }))
+  if (image) return h('span', common, h('img', { className: image === ATENEA_AVATAR ? 'bt-mark-img bt-mark-isotipo' : 'bt-mark-img', src: image, alt: '', draggable: false, onError: () => setBroken(image) }))
   const box = shapeOf(look.shape).size
   return h('span', common, h('svg', { viewBox: `0 0 ${box} ${box}`, dangerouslySetInnerHTML: { __html: characterMarkup(look.shape, look.color).replaceAll(MASK_ID, maskId.current) } }))
 }
