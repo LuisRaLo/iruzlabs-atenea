@@ -74,7 +74,7 @@ export function createRuntime(ctx, config = {}) {
     teamTools: [],
     defaults: {
       mainName: config.mainName ?? (process.env.ATENEA_MAIN_NAME ?? (process.env.DSH_HARNESS ? 'Chief' : 'Atenea')),
-      mainRole: config.mainRole ?? (process.env.ATENEA_MAIN_ROLE ?? (process.env.DSH_HARNESS ? 'Chief of Staff' : 'Estratega Principal')),
+      mainRole: config.mainRole ?? (process.env.ATENEA_MAIN_ROLE ?? (process.env.DSH_HARNESS ? 'Chief of Staff' : '')),
     },
   }
   for (const module of MODULES) module.install(rt)
