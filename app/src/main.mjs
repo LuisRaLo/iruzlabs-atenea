@@ -13,7 +13,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { canonicalExecPath } from './canonical-path.mjs'
-import { configureIdentity } from './legacy.mjs'
+import { configureIdentity, PRODUCT_NAME } from './legacy.mjs'
 import { hostPort } from './host-port.mjs'
 import { captureStdio, LogFile } from './logs.mjs'
 import { currentRootOf, driveOf, formatBytes, freeSpace, isEmptyTree, pickFrom, placeOf, rootOf } from './place.mjs'
@@ -60,6 +60,7 @@ const trayIconFile = () => join(assets, process.platform === 'win32' ? 'tray.ico
 // Windows 11 draws Mica behind the page; mica.css lets it through the sidebar.
 const mica = micaAvailable(process.platform, release())
 configureIdentity(app)
+app.name = PRODUCT_NAME
 if (process.env.DS_BOT_SHELL_DATA) app.setPath('userData', process.env.DS_BOT_SHELL_DATA)
 const frameFile = join(app.getPath('userData'), 'start-frame.json')
 
@@ -690,7 +691,7 @@ async function copyTeam(where, signal) {
   const unreadable = await checkTeam(where, signal)
   if (signal.aborted) return 'stopped'
   if (unreadable > 0) {
-    const { response } = await startWindow.asking(dialog.showMessageBox(owner(), { type: 'warning', title: 'DS Bot', noLink: true, message: tx('dialog.import.newer', { n: unreadable }), buttons: [tx('btn.quit'), tx('btn.startWithout')], defaultId: 0, cancelId: 0, signal }))
+    const { response } = await startWindow.asking(dialog.showMessageBox(owner(), { type: 'warning', title: PRODUCT_NAME, noLink: true, message: tx('dialog.import.newer', { n: unreadable }), buttons: [tx('btn.quit'), tx('btn.startWithout')], defaultId: 0, cancelId: 0, signal }))
     if (signal.aborted) return 'stopped'
     if (response === 0) return 'quit'
     saveLocations(where)
@@ -711,7 +712,7 @@ async function copyTeam(where, signal) {
   } catch (error) {
     if (signal.aborted) return 'stopped'
     console.error(error)
-    await startWindow.asking(dialog.showMessageBox(owner(), { type: 'warning', title: 'DS Bot', message: tx('dialog.import.failed', { message: error instanceof Error ? error.message : String(error) }), signal }))
+    await startWindow.asking(dialog.showMessageBox(owner(), { type: 'warning', title: PRODUCT_NAME, message: tx('dialog.import.failed', { message: error instanceof Error ? error.message : String(error) }), signal }))
     if (signal.aborted) return 'stopped'
   } finally {
     signal.removeEventListener('abort', stopWarm)
@@ -769,13 +770,13 @@ async function moveData(workspace) {
     for (const current of new Set([workspace, places.workspace])) {
       const problem = moveProblem({ from: places.dataDir, to, workspace: current, dshHome, program: app.isPackaged ? programFolder() : undefined })
       if (problem === undefined) continue
-      await dialog.showMessageBox(owner(), { type: 'warning', title: 'DS Bot', message: problem === 'dsh' ? tx('dialog.move.inDsh', { home: dshHome }) : tx(MOVE_PROBLEMS[problem]), buttons: [tx('btn.ok')] })
+      await dialog.showMessageBox(owner(), { type: 'warning', title: PRODUCT_NAME, message: problem === 'dsh' ? tx('dialog.move.inDsh', { home: dshHome }) : tx(MOVE_PROBLEMS[problem]), buttons: [tx('btn.ok')] })
       return true
     }
     return false
   }
   if (await refused()) return false
-  const { response } = await dialog.showMessageBox(owner(), { type: 'question', title: 'DS Bot', noLink: true, message: tx('dialog.move.confirm', { to }), detail: tx('dialog.move.detail', { from: places.dataDir }), buttons: [tx('btn.move'), tx('btn.cancel')], defaultId: 0, cancelId: 1 })
+  const { response } = await dialog.showMessageBox(owner(), { type: 'question', title: PRODUCT_NAME, noLink: true, message: tx('dialog.move.confirm', { to }), detail: tx('dialog.move.detail', { from: places.dataDir }), buttons: [tx('btn.move'), tx('btn.cancel')], defaultId: 0, cancelId: 1 })
   if (response !== 0 || stopping || await refused()) return false
   const signal = copyAbort.signal
   copying = (async () => {
@@ -792,7 +793,7 @@ async function moveData(workspace) {
     }
     // Another DSH on the same data would go on writing while the copy is made.
     if (teamInUse(places.dataDir)) {
-      await dialog.showMessageBox(owner(), { type: 'warning', title: 'DS Bot', message: tx('dialog.move.inUse') })
+      await dialog.showMessageBox(owner(), { type: 'warning', title: PRODUCT_NAME, message: tx('dialog.move.inUse') })
       app.relaunch()
       return
     }
@@ -809,7 +810,7 @@ async function moveData(workspace) {
     } catch (error) {
       if (signal.aborted) return
       console.error(error)
-      await dialog.showMessageBox(owner(), { type: 'warning', title: 'DS Bot', message: tx('dialog.move.failed', { message: error instanceof Error ? error.message : String(error) }) })
+      await dialog.showMessageBox(owner(), { type: 'warning', title: PRODUCT_NAME, message: tx('dialog.move.failed', { message: error instanceof Error ? error.message : String(error) }) })
     } finally {
       setProgress(-1)
     }
@@ -865,13 +866,13 @@ const afterHandoff = async () => { await startWindow.teamShown; return !failed }
 
 async function askRestartNow(version) {
   if (failed || !await afterHandoff()) return false
-  const { response } = await dialog.showMessageBox(owner(), { type: 'info', title: 'DS Bot', message: tx('dialog.update.ready', { version }), detail: tx('dialog.update.readyDetail'), buttons: [tx('btn.restart'), tx('btn.notNowRestart')], defaultId: 0, cancelId: 1, noLink: true })
+  const { response } = await dialog.showMessageBox(owner(), { type: 'info', title: PRODUCT_NAME, message: tx('dialog.update.ready', { version }), detail: tx('dialog.update.readyDetail'), buttons: [tx('btn.restart'), tx('btn.notNowRestart')], defaultId: 0, cancelId: 1, noLink: true })
   return response === 0
 }
 
 async function askDownloadNow(version) {
   if (failed || !await afterHandoff()) return false
-  const { response } = await dialog.showMessageBox(owner(), { type: 'info', title: 'DS Bot', message: tx('dialog.update.available', { version }), detail: tx('dialog.update.availableDetail'), buttons: [tx('btn.download'), tx('btn.notNowDownload')], defaultId: 0, cancelId: 1, noLink: true })
+  const { response } = await dialog.showMessageBox(owner(), { type: 'info', title: PRODUCT_NAME, message: tx('dialog.update.available', { version }), detail: tx('dialog.update.availableDetail'), buttons: [tx('btn.download'), tx('btn.notNowDownload')], defaultId: 0, cancelId: 1, noLink: true })
   return response === 0
 }
 
@@ -902,7 +903,7 @@ function createWindow() {
     // The window never squeezes the chat: RAIL_WIDTH + MIN_CHAT from ds-bot's
     // src/client/frame-layout.js is the avatar rail plus the smallest chat column.
     ...startWindow.mainBounds(), minWidth: 508, minHeight: 480,
-    title: 'DS Bot', show: false, icon: iconFile,
+    title: PRODUCT_NAME, show: false, icon: iconFile,
     backgroundColor: mica ? '#00000000' : dark ? '#1b1b1c' : '#ffffff',
     // Frameless as in DSH Desktop: the caption buttons overlay the page's band. They keep the
     // sidebar's colors until the page sends the colors of the surface under them.
@@ -1063,7 +1064,7 @@ function setMenu() {
     items.push({ type: 'separator' }, { label: t.quit, click: () => { shell.quit() } })
   }
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    { label: app.name, submenu: items },
+    { label: PRODUCT_NAME, submenu: items },
     { role: 'fileMenu' }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
   ]))
 }
@@ -1100,7 +1101,7 @@ async function fail(error) {
   startWindow.fail(error, startKind())
   const found = await Promise.race([updates?.latest() ?? null, sleep(UPDATE_CHECK_WAIT_MS).then(() => null)])
   if (!found || mine !== attempt) return
-  await dialog.showMessageBox(owner(), { type: 'info', title: 'DS Bot', message: tx(found.page ? 'dialog.update.onFailurePage' : 'dialog.update.onFailure', { version: found.version }) })
+  await dialog.showMessageBox(owner(), { type: 'info', title: PRODUCT_NAME, message: tx(found.page ? 'dialog.update.onFailurePage' : 'dialog.update.onFailure', { version: found.version }) })
   if (found.page) {
     if (!process.env.DS_BOT_HOME) await electronShell.openExternal(found.page)
     return

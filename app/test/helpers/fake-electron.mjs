@@ -5,6 +5,7 @@ import { EventEmitter } from 'node:events'
 import { mkdirSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { PRODUCT_NAME } from '../../src/legacy.mjs'
 
 // The data of the app in this process: a folder of its own, so that a test never writes
 // into the data of the user.
@@ -112,7 +113,7 @@ class FakeWebContents extends EventEmitter {
     this.mainFrame = {}
     this.isDestroyed = () => this.win.destroyed
     this.getURL = () => this.win.url
-    this.getTitle = () => 'DS Bot'
+    this.getTitle = () => PRODUCT_NAME
     this.send = () => {}
     this.setWindowOpenHandler = () => {}
     this.insertCSS = async () => {}
@@ -125,7 +126,7 @@ class FakeWebContents extends EventEmitter {
 class FakeApp extends EventEmitter {
   constructor() {
     super()
-    this.name = 'DS Bot'
+    this.name = PRODUCT_NAME
     this.getVersion = () => '0.2.2'
     this.getLocale = () => 'en-US'
     this.getPath = (name) => paths[name] ?? join(root, String(name))

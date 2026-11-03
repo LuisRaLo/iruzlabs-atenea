@@ -5,6 +5,7 @@
 // growth, the snapshot and the checks are plain functions, so the tests run without Electron.
 import { pathToFileURL } from 'node:url'
 import { within } from './copy-tree.mjs'
+import { PRODUCT_NAME } from './legacy.mjs'
 
 export const START_STATE = 'ds-bot:start-state'
 export const START_ACT = 'ds-bot:start-act'
@@ -293,7 +294,7 @@ export class StartWindow {
     const win = new BrowserWindow({
       ...rect,
       useContentSize: true, resizable: false, maximizable: false, fullscreenable: false, minimizable: true,
-      show: true, title: 'DS Bot', icon: this.#o.icon,
+      show: true, title: PRODUCT_NAME, icon: this.#o.icon,
       backgroundColor: mica ? '#00000000' : colors.main,
       // Frameless with the system minimize and close buttons over the page's empty 40 px band.
       ...(win32 ? {
