@@ -1,5 +1,5 @@
 import { createElement as h, startTransition, useEffect, useMemo, useRef, useState } from 'react'
-import { colorOf, MAIN_LOOK } from './characters.js'
+import { colorOf, ATENEA_LOOK } from './characters.js'
 import { GRADIENTS, paintCss } from './inks.js'
 import { BotAvatar, BotMark, RoomAvatar } from './mark.js'
 import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.js'
@@ -505,7 +505,7 @@ export function UsagePage({ roster, actions, focusId }) {
   if (view.rows.length === 0) {
     return h('div', { className: 'bt-us' },
       h('div', { className: 'bt-us-empty' },
-        h(BotMark, { look: MAIN_LOOK, size: 56, live: true }),
+        h(BotMark, { look: ATENEA_LOOK, size: 56, live: true }),
         h('b', null, view.scanning ? t('Reading your chats…') : t('No usage yet.')),
         h('span', null, t('Token usage shows up here after a model is called.'))))
   }

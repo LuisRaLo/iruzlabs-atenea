@@ -4,7 +4,7 @@ import { FishLogo } from './dsh-primitives.js'
 import { isMainOf } from './sources.js'
 import { currentPart, previewOf, relativeShort } from './text.js'
 import { PlusIcon, SearchIcon, SidebarIcon, GaugeIcon, ClockIcon, GearIcon, PinMarkIcon, ConnectorIcon, SwitchIcon, CloudDownloadIcon, SignInIcon, SignOutIcon, SlidersIcon } from './icons.js'
-import { MAIN_LOOK } from './characters.js'
+import { ATENEA_LOOK } from './characters.js'
 import { botState, BotMark, BotAvatar, RoomAvatar } from './mark.js'
 import { reducedMotion } from './activity-row.js'
 import { Shimmer, workPhrase } from './cells.js'
@@ -959,7 +959,7 @@ export function BotReturn({ wide, useSurface, useRoster, actions }) {
   useReportReady(mode === 'agent' && ready)
   if (mode !== 'agent') return null
   return h('button', { type: 'button', className: 'bt-return', 'aria-label': t('Atenea'), title: t('Atenea'), onClick: () => actions.setSurface('bot') },
-    h(BotMark, { look: MAIN_LOOK, size: 20 }),
+    h(BotMark, { look: ATENEA_LOOK, size: 20 }),
     wide ? h('span', { className: 'bt-return-name' }, t('Atenea')) : null)
 }
 
@@ -976,7 +976,7 @@ export const RETURN_CSS = `
 `
 
 export function BrandMark({ size = 24 }) {
-  return h('span', { className: 'bt-brand-whale' }, h(BotMark, { look: MAIN_LOOK, size }))
+  return h('span', { className: 'bt-brand-whale' }, h(BotMark, { look: ATENEA_LOOK, size }))
 }
 export function BrandName() {
   return h('span', { style: { fontWeight: 600, fontSize: 14 } }, 'Atenea')

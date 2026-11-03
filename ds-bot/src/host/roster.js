@@ -9,7 +9,7 @@ const BROWSER_GRANT_KINDS = new Set(['post', 'upload', 'download', 'delete', '*'
 const HOSTNAME = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/
 
 const OWN_RULES = 'Where your instructions say otherwise, follow them.'
-const writeIn = language => `Write in ${language ?? 'the user\'s language if known; otherwise Chinese'}.`
+const writeIn = language => `Write in ${language ?? (process.env.DSH_HARNESS ? 'the user\'s language if known; otherwise Chinese' : 'Spanish')}.`
 // The first Main Bot's greeting when the user wrote before it had a model that works.
 const AFTER_USER = 'You were just set up as the user\'s Main Bot. The user wrote to you before your model could answer; their message above has no answer yet. Answer it now, and say in one short sentence that you run their Bot team.'
 
@@ -184,7 +184,9 @@ export function install(rt) {
       // The kickoff arrives as a user message, so it outranks the Bot's instructions
       // unless it gives way to them, and it names no tool those instructions may rule out.
       const kickoff = main
-        ? `You were just set up as the user's Main Bot. Greet the user in one or two short messages: say you will run their Bot team and that they can come to you for anything that needs a decision. Then ask in one short question what they want the team to help with first. ${writeIn(language)}`
+        ? (process.env.DSH_HARNESS
+          ? `You were just set up as the user's Main Bot. Greet the user in one or two short messages: say you will run their Bot team and that they can come to you for anything that needs a decision. Then ask in one short question what they want the team to help with first. ${writeIn(language)}`
+          : `Fuiste configurada como Atenea, la IA y Bot Principal del equipo en Atenea by Iruz Labs. Saluda al usuario en uno o dos mensajes breves en español: preséntate como Atenea de Iruz Labs, menciona que estás lista para orquestar la estrategia y al equipo de bots, coordinando proyectos con máxima precisión y agilidad. Luego, haz una pregunta breve sobre en qué iniciativa o tarea desean comenzar. ${writeIn(language ?? 'Spanish')}`)
         : original
           ? `The user just made you as a copy of ${original.name}: same job, fresh memory. Greet the user in one short message, then ask in one short question what this copy should focus on.`
           : creator
@@ -763,7 +765,15 @@ export function install(rt) {
     if (state.mainBotIds.some(id => rt.botOf(id))) return
     // Only the team's first Main Bot is stored as the DeepSeek whale; other Bots get a
     // look from their id, and a Bot made Main Bot later keeps its own.
-    bootstrapping ??= createBot({ name: defaults.mainName, role: defaults.mainRole, main: true, color: 'deepseek', avatar: { shape: 'whale' }, pickModel: true })
+    bootstrapping ??= createBot({
+      name: defaults.mainName,
+      role: defaults.mainRole,
+      main: true,
+      color: defaults.mainColor ?? 'deepseek',
+      avatar: defaults.mainAvatar ?? { shape: 'whale', image: defaults.mainAvatarImage },
+      instructions: defaults.mainInstructions ?? '',
+      pickModel: true,
+    })
       .finally(() => { bootstrapping = null })
     await bootstrapping
   }

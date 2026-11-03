@@ -1,4 +1,8 @@
 import { INKS, GRADIENTS, isHex, inkFill } from './inks.js'
+import { ATENEA_AVATAR } from '../shared/branding.js'
+
+export { ATENEA_AVATAR }
+export const ATENEA_LOOK = Object.freeze({ shape: 'whale', color: 'atenea', image: ATENEA_AVATAR })
 
 // -------------------------------------------------------------------------
 // Characters: DS Bot's own avatars, small 3D models seen from a
@@ -69,7 +73,7 @@ export function lookOf(bot) {
   const avatar = bot?.avatar ?? {}
   return {
     shape: hasShape(avatar.shape) ? avatar.shape : bot?.id ? defaultShape(String(bot.id)) : FALLBACK_SHAPE,
-    image: avatar.image,
+    image: avatar.image ?? (bot?.name === 'Atenea' ? ATENEA_AVATAR : undefined),
     color: colorOf(bot),
   }
 }

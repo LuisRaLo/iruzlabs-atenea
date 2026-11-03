@@ -7,7 +7,7 @@ import { dateLocale, hostText, t } from './i18n.js'
 import { StarLineIcon } from './icons.js'
 import { SPRING_POP } from './motion.js'
 import { BotMark } from './mark.js'
-import { MAIN_LOOK } from './characters.js'
+import { ATENEA_LOOK } from './characters.js'
 import { showsDshRow } from './dsh-offer.js'
 
 // The length of the mark's `done` hop (bt-done in styles.js).
@@ -110,7 +110,7 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
   const repo = update.repoUrl
   return [
     h('div', { key: 'hero', className: 'bt-about-hero' },
-      h('span', { className: 'bt-about-mark' }, h(BotMark, { look: MAIN_LOOK, bot: { id: 'about' }, size: 52, state: markState, live: true, gaze: true, pokeable: true })),
+      h('span', { className: 'bt-about-mark' }, h(BotMark, { look: ATENEA_LOOK, bot: { id: 'about' }, size: 52, state: markState, live: true, gaze: true, pokeable: true })),
       h('div', { className: 'bt-about-copy' },
         h('span', { className: 'bt-about-name' }, 'Atenea by Iruz Labs'),
         update.current ? h('span', { className: 'bt-about-version' }, t('Version {version}', { version: update.current })) : null),

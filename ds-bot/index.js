@@ -2,6 +2,7 @@
 // Every Bot is one root Session; the roster, rooms, and the bot-to-bot exchange log live
 // in one JSON file under DSH_HOME so they survive restarts without new Session event types.
 import { join } from 'node:path'
+import { ATENEA_AVATAR, ATENEA_INSTRUCTIONS } from './src/shared/branding.js'
 import * as diagnostics from './src/host/diagnostics.js'
 import * as store from './src/host/store.js'
 import * as models from './src/host/models.js'
@@ -75,6 +76,9 @@ export function createRuntime(ctx, config = {}) {
     defaults: {
       mainName: config.mainName ?? (process.env.ATENEA_MAIN_NAME ?? (process.env.DSH_HARNESS ? 'Chief' : 'Atenea')),
       mainRole: config.mainRole ?? (process.env.ATENEA_MAIN_ROLE ?? (process.env.DSH_HARNESS ? 'Chief of Staff' : '')),
+      mainColor: config.mainColor ?? (process.env.DSH_HARNESS ? 'deepseek' : 'atenea'),
+      mainAvatarImage: config.mainAvatarImage ?? (process.env.DSH_HARNESS ? undefined : ATENEA_AVATAR),
+      mainInstructions: config.mainInstructions ?? (process.env.DSH_HARNESS ? '' : ATENEA_INSTRUCTIONS),
     },
   }
   for (const module of MODULES) module.install(rt)
