@@ -17731,6 +17731,14 @@ var import_react46 = require("react");
 var PROTOCOL_NAMES = { "openai-completions": "OpenAI Chat Completions", "openai-responses": "OpenAI Responses", "anthropic-messages": "Anthropic Messages" };
 var ENDPOINT_HINTS = { "anthropic-messages": "https://gateway.example" };
 var SHOWN_MODELS = 8;
+var CORE_PROVIDERS = /* @__PURE__ */ new Set(["deepseek", "deepseek-official", "deepseek-account", "openai", "ollama", "azure", "azure-openai", "azure-foundry"]);
+var ALLOWED_KNOWN = /* @__PURE__ */ new Set(["openai", "deepseek", "azure", "anthropic", "ollama"]);
+var PRESETS = [
+  { id: "ollama", label: "Ollama (Local)", provider: "ollama", name: "Ollama", baseURL: "http://localhost:11434/v1", api: "openai-completions", key: "", autoFetch: true },
+  { id: "azure", label: "Azure AI Foundry", provider: "azure-foundry", name: "Azure AI Foundry", baseURL: "https://<endpoint>.services.ai.azure.com/models", api: "openai-completions", key: "", hint: "Azure AI Foundry endpoint with OpenAI, DeepSeek, or Mistral" },
+  { id: "openai", label: "OpenAI", provider: "openai", name: "OpenAI", baseURL: "https://api.openai.com/v1", api: "openai-completions", key: "", hint: "Official OpenAI API key" },
+  { id: "deepseek", label: "DeepSeek API", provider: "deepseek", name: "DeepSeek API", baseURL: "https://api.deepseek.com/v1", api: "openai-completions", key: "", hint: "Official DeepSeek API key" }
+];
 var translated = (promise) => Promise.resolve(promise).catch((failure) => {
   throw new Error(hostText(failure?.message ?? String(failure)));
 });
@@ -17746,11 +17754,12 @@ function ProvidersPage({ actions, run: run2, Section }) {
   }, []);
   if (view === null) return null;
   if (!view.available) return (0, import_react46.createElement)("p", { className: "bt-set-hint" }, t("This DSH cannot set up model providers."));
+  const visibleProviders = view.providers.filter((p) => p.custom || p.removable || CORE_PROVIDERS.has(p.id.toLowerCase()) || p.models && p.models.length > 0 || p.key?.configured);
   return [
     (0, import_react46.createElement)(
       Section,
-      { key: "list", title: t("Model providers · {count}", { count: view.providers.length }) },
-      view.providers.map((provider) => (0, import_react46.createElement)(ProviderRow, {
+      { key: "list", title: t("Model providers · {count}", { count: visibleProviders.length }) },
+      visibleProviders.map((provider) => (0, import_react46.createElement)(ProviderRow, {
         key: provider.id,
         provider,
         apply: apply2,
@@ -17874,7 +17883,7 @@ function AddProvider({ view, apply: apply2, actions, onDone }) {
 function KnownForm({ view, apply: apply2, actions, onDone }) {
   const [provider, setProvider] = (0, import_react46.useState)("");
   const [key, setKey] = (0, import_react46.useState)("");
-  const options = [...view.addable].sort((a, b) => a.name.localeCompare(b.name));
+  const options = [...view.addable].filter((a) => ALLOWED_KNOWN.has(a.id.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
   const add = () => {
     if (provider === "") return;
     void apply2(actions.addProvider({ provider, key })).then((ok) => {
@@ -17899,13 +17908,17 @@ function CustomForm({ view, apply: apply2, actions, onDone }) {
   const [found, setFound] = (0, import_react46.useState)(null);
   const [picked, setPicked] = (0, import_react46.useState)([]);
   const [asking, setAsking] = (0, import_react46.useState)(false);
-  const set = (field, value) => setDraft((current) => ({ ...current, [field]: value }));
+  const [activePreset, setActivePreset] = (0, import_react46.useState)(null);
+  const set = (field, value) => {
+    setActivePreset(null);
+    setDraft((current) => ({ ...current, [field]: value }));
+  };
   const typed = draft.typed.split(/[\s,]+/).map((id) => id.trim()).filter(Boolean);
   const models = [...(found ?? []).filter((model) => picked.includes(model.id)), ...typed.filter((id) => !picked.includes(id)).map((id) => ({ id }))];
   const ready = draft.provider.trim() !== "" && draft.baseURL.trim() !== "" && models.length > 0;
-  const fetchModels = () => {
+  const fetchModels = (targetBaseURL = draft.baseURL, targetApi = draft.api, targetKey = draft.key) => {
     setAsking(true);
-    void apply2(Promise.resolve(actions.providerModels({ baseURL: draft.baseURL, api: draft.api, key: draft.key })).then((list) => {
+    void apply2(Promise.resolve(actions.providerModels({ baseURL: targetBaseURL, api: targetApi, key: targetKey })).then((list) => {
       setFound(list);
       setPicked([]);
     })).finally(() => setAsking(false));
@@ -17917,6 +17930,21 @@ function CustomForm({ view, apply: apply2, actions, onDone }) {
       if (ok) onDone();
     });
   };
+  const applyPreset = (preset) => {
+    setActivePreset(preset.id);
+    setDraft((current) => ({
+      ...current,
+      provider: preset.provider,
+      name: preset.name,
+      baseURL: preset.baseURL,
+      api: preset.api,
+      key: preset.key,
+      typed: preset.typed ?? ""
+    }));
+    if (preset.autoFetch) {
+      fetchModels(preset.baseURL, preset.api, preset.key);
+    }
+  };
   const input = (field, label, placeholder) => (0, import_react46.createElement)("input", {
     className: "bt-input",
     "aria-label": label,
@@ -17926,9 +17954,22 @@ function CustomForm({ view, apply: apply2, actions, onDone }) {
     autoComplete: "off",
     onChange: (event) => set(field, event.target.value)
   });
+  const currentPreset = PRESETS.find((p) => p.id === activePreset);
   return (0, import_react46.createElement)(
     "div",
     { className: "bt-provider-form" },
+    (0, import_react46.createElement)(
+      "div",
+      { className: "bt-provider-presets" },
+      PRESETS.map((p) => (0, import_react46.createElement)("button", {
+        key: p.id,
+        type: "button",
+        className: "bt-provider-preset-btn",
+        "data-active": activePreset === p.id ? "" : void 0,
+        onClick: () => applyPreset(p)
+      }, p.label))
+    ),
+    currentPreset?.hint ? (0, import_react46.createElement)("div", { className: "bt-set-hint" }, currentPreset.hint) : null,
     (0, import_react46.createElement)(
       "div",
       { className: "bt-provider-pair" },
@@ -17953,7 +17994,7 @@ function CustomForm({ view, apply: apply2, actions, onDone }) {
         "div",
         { className: "bt-provider-models-head" },
         (0, import_react46.createElement)("span", { className: "bt-secret-edit-label" }, t("Models")),
-        (0, import_react46.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: asking || draft.baseURL.trim() === "", onClick: fetchModels }, asking ? t("Asking…") : t("Fetch models"))
+        (0, import_react46.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: asking || draft.baseURL.trim() === "", onClick: () => fetchModels() }, asking ? t("Asking…") : t("Fetch models"))
       ),
       found !== null && found.length === 0 ? (0, import_react46.createElement)("div", { className: "bt-set-hint" }, t("The endpoint lists no models. Enter their ids below.")) : null,
       found !== null && found.length > 0 ? (0, import_react46.createElement)("div", { className: "bt-secret-bots bt-provider-found" }, found.map((model) => (0, import_react46.createElement)("button", {
@@ -17978,6 +18019,10 @@ function FormActions({ onCancel, onAdd, ready }) {
   );
 }
 var PROVIDERS_CSS = `
+.bt-provider-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
+.bt-provider-preset-btn{display:inline-flex;align-items:center;padding:5px 12px;border-radius:12px;border:1px solid var(--bt-line);background:var(--bt-card);color:var(--bt-ink);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.bt-provider-preset-btn:hover{background:var(--bt-hover);border-color:var(--bt-accent)}
+.bt-provider-preset-btn[data-active]{background:var(--bt-accent);color:var(--bt-accent-ink);border-color:var(--bt-accent)}
 .bt-provider-id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--bt-ink-3)}
 .bt-provider .bt-set-hint[data-error]{color:var(--bt-danger)}
 .bt-provider-state{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:16px;color:var(--bt-ink-2);white-space:nowrap}

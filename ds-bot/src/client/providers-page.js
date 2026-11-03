@@ -12,6 +12,16 @@ const PROTOCOL_NAMES = { 'openai-completions': 'OpenAI Chat Completions', 'opena
 const ENDPOINT_HINTS = { 'anthropic-messages': 'https://gateway.example' }
 const SHOWN_MODELS = 8
 
+const CORE_PROVIDERS = new Set(['deepseek', 'deepseek-official', 'deepseek-account', 'openai', 'ollama', 'azure', 'azure-openai', 'azure-foundry'])
+const ALLOWED_KNOWN = new Set(['openai', 'deepseek', 'azure', 'anthropic', 'ollama'])
+
+const PRESETS = [
+  { id: 'ollama', label: 'Ollama (Local)', provider: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1', api: 'openai-completions', key: '', autoFetch: true },
+  { id: 'azure', label: 'Azure AI Foundry', provider: 'azure-foundry', name: 'Azure AI Foundry', baseURL: 'https://<endpoint>.services.ai.azure.com/models', api: 'openai-completions', key: '', hint: 'Azure AI Foundry endpoint with OpenAI, DeepSeek, or Mistral' },
+  { id: 'openai', label: 'OpenAI', provider: 'openai', name: 'OpenAI', baseURL: 'https://api.openai.com/v1', api: 'openai-completions', key: '', hint: 'Official OpenAI API key' },
+  { id: 'deepseek', label: 'DeepSeek API', provider: 'deepseek', name: 'DeepSeek API', baseURL: 'https://api.deepseek.com/v1', api: 'openai-completions', key: '', hint: 'Official DeepSeek API key' },
+]
+
 // A failure in the interface language; the dialog's error line shows it.
 const translated = promise => Promise.resolve(promise).catch((failure) => { throw new Error(hostText(failure?.message ?? String(failure))) })
 
@@ -24,9 +34,10 @@ export function ProvidersPage({ actions, run, Section }) {
   useEffect(() => { void apply(actions.providers()) }, [])
   if (view === null) return null
   if (!view.available) return h('p', { className: 'bt-set-hint' }, t('This DSH cannot set up model providers.'))
+  const visibleProviders = view.providers.filter(p => p.custom || p.removable || CORE_PROVIDERS.has(p.id.toLowerCase()) || (p.models && p.models.length > 0) || p.key?.configured)
   return [
-    h(Section, { key: 'list', title: t('Model providers · {count}', { count: view.providers.length }) },
-      view.providers.map(provider => h(ProviderRow, {
+    h(Section, { key: 'list', title: t('Model providers · {count}', { count: visibleProviders.length }) },
+      visibleProviders.map(provider => h(ProviderRow, {
         key: provider.id, provider, apply, actions,
         open: open === provider.id, onToggle: () => setOpen(open === provider.id ? null : provider.id),
       })),
@@ -105,7 +116,7 @@ function AddProvider({ view, apply, actions, onDone }) {
 function KnownForm({ view, apply, actions, onDone }) {
   const [provider, setProvider] = useState('')
   const [key, setKey] = useState('')
-  const options = [...view.addable].sort((a, b) => a.name.localeCompare(b.name))
+  const options = [...view.addable].filter(a => ALLOWED_KNOWN.has(a.id.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name))
   const add = () => {
     if (provider === '') return
     void apply(actions.addProvider({ provider, key })).then((ok) => { if (ok) onDone() })
@@ -123,13 +134,17 @@ function CustomForm({ view, apply, actions, onDone }) {
   const [found, setFound] = useState(null)
   const [picked, setPicked] = useState([])
   const [asking, setAsking] = useState(false)
-  const set = (field, value) => setDraft(current => ({ ...current, [field]: value }))
+  const [activePreset, setActivePreset] = useState(null)
+  const set = (field, value) => {
+    setActivePreset(null)
+    setDraft(current => ({ ...current, [field]: value }))
+  }
   const typed = draft.typed.split(/[\s,]+/).map(id => id.trim()).filter(Boolean)
   const models = [...(found ?? []).filter(model => picked.includes(model.id)), ...typed.filter(id => !picked.includes(id)).map(id => ({ id }))]
   const ready = draft.provider.trim() !== '' && draft.baseURL.trim() !== '' && models.length > 0
-  const fetchModels = () => {
+  const fetchModels = (targetBaseURL = draft.baseURL, targetApi = draft.api, targetKey = draft.key) => {
     setAsking(true)
-    void apply(Promise.resolve(actions.providerModels({ baseURL: draft.baseURL, api: draft.api, key: draft.key })).then((list) => { setFound(list); setPicked([]) }))
+    void apply(Promise.resolve(actions.providerModels({ baseURL: targetBaseURL, api: targetApi, key: targetKey })).then((list) => { setFound(list); setPicked([]) }))
       .finally(() => setAsking(false))
   }
   const toggle = id => setPicked(list => (list.includes(id) ? list.filter(item => item !== id) : [...list, id]))
@@ -138,10 +153,32 @@ function CustomForm({ view, apply, actions, onDone }) {
     void apply(actions.addProvider({ custom: true, provider: draft.provider.trim(), name: draft.name, baseURL: draft.baseURL, api: draft.api, key: draft.key, models }))
       .then((ok) => { if (ok) onDone() })
   }
+  const applyPreset = (preset) => {
+    setActivePreset(preset.id)
+    setDraft(current => ({
+      ...current,
+      provider: preset.provider,
+      name: preset.name,
+      baseURL: preset.baseURL,
+      api: preset.api,
+      key: preset.key,
+      typed: preset.typed ?? '',
+    }))
+    if (preset.autoFetch) {
+      fetchModels(preset.baseURL, preset.api, preset.key)
+    }
+  }
   const input = (field, label, placeholder) => h('input', {
     className: 'bt-input', 'aria-label': label, placeholder, value: draft[field], spellCheck: false, autoComplete: 'off', onChange: event => set(field, event.target.value),
   })
+  const currentPreset = PRESETS.find(p => p.id === activePreset)
   return h('div', { className: 'bt-provider-form' },
+    h('div', { className: 'bt-provider-presets' },
+      PRESETS.map(p => h('button', {
+        key: p.id, type: 'button', className: 'bt-provider-preset-btn', 'data-active': activePreset === p.id ? '' : undefined,
+        onClick: () => applyPreset(p),
+      }, p.label))),
+    currentPreset?.hint ? h('div', { className: 'bt-set-hint' }, currentPreset.hint) : null,
     h('div', { className: 'bt-provider-pair' },
       input('provider', t('Provider ID'), t('Provider ID, e.g. my-gateway')),
       input('name', t('Name'), t('Name (optional)'))),
@@ -153,7 +190,7 @@ function CustomForm({ view, apply, actions, onDone }) {
     h('div', { className: 'bt-secret-edit-block' },
       h('div', { className: 'bt-provider-models-head' },
         h('span', { className: 'bt-secret-edit-label' }, t('Models')),
-        h('button', { type: 'button', className: 'bt-soft bt-soft-sm', disabled: asking || draft.baseURL.trim() === '', onClick: fetchModels }, asking ? t('Asking…') : t('Fetch models'))),
+        h('button', { type: 'button', className: 'bt-soft bt-soft-sm', disabled: asking || draft.baseURL.trim() === '', onClick: () => fetchModels() }, asking ? t('Asking…') : t('Fetch models'))),
       found !== null && found.length === 0 ? h('div', { className: 'bt-set-hint' }, t('The endpoint lists no models. Enter their ids below.')) : null,
       found !== null && found.length > 0 ? h('div', { className: 'bt-secret-bots bt-provider-found' }, found.map(model => h('button', {
         key: model.id, type: 'button', className: 'bt-secret-bot', 'aria-pressed': picked.includes(model.id), title: model.name && model.name !== model.id ? model.name : undefined, onClick: () => toggle(model.id),
@@ -169,6 +206,10 @@ function FormActions({ onCancel, onAdd, ready }) {
 }
 
 export const PROVIDERS_CSS = `
+.bt-provider-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
+.bt-provider-preset-btn{display:inline-flex;align-items:center;padding:5px 12px;border-radius:12px;border:1px solid var(--bt-line);background:var(--bt-card);color:var(--bt-ink);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.bt-provider-preset-btn:hover{background:var(--bt-hover);border-color:var(--bt-accent)}
+.bt-provider-preset-btn[data-active]{background:var(--bt-accent);color:var(--bt-accent-ink);border-color:var(--bt-accent)}
 .bt-provider-id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--bt-ink-3)}
 .bt-provider .bt-set-hint[data-error]{color:var(--bt-danger)}
 .bt-provider-state{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:16px;color:var(--bt-ink-2);white-space:nowrap}
