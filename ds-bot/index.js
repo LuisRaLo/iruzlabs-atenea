@@ -73,8 +73,8 @@ export function createRuntime(ctx, config = {}) {
     // Bot Session's own scope, never globally (see shareBotTools).
     teamTools: [],
     defaults: {
-      mainName: config.mainName ?? 'Chief',
-      mainRole: config.mainRole ?? 'Chief of Staff',
+      mainName: config.mainName ?? (process.env.ATENEA_MAIN_NAME ?? (process.env.DSH_HARNESS ? 'Chief' : 'Atenea')),
+      mainRole: config.mainRole ?? (process.env.ATENEA_MAIN_ROLE ?? (process.env.DSH_HARNESS ? 'Chief of Staff' : 'Estratega Principal')),
     },
   }
   for (const module of MODULES) module.install(rt)

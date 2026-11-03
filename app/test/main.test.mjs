@@ -3,6 +3,7 @@
 // runs. The Electron parts are test doubles: no display, no DSH, no data of the user.
 import assert from 'node:assert/strict'
 import { before, test } from 'node:test'
+import { PRODUCT_NAME } from '../src/legacy.mjs'
 import { state } from './helpers/fake-electron.mjs'
 import { state as hostState } from './helpers/fake-host-process.mjs'
 import { handOff, startApp, teamWindows, trayMenu, waitFor, window } from './helpers/app-harness.mjs'
@@ -15,7 +16,7 @@ before(async () => { await startApp() })
 test('the app starts with a window and a tray', async () => {
   await waitFor(() => window() !== undefined, 'open the window')
   await waitFor(() => state.tray !== undefined, 'build the tray')
-  assert.equal(state.tray.tooltip, 'DS Bot')
+  assert.equal(state.tray.tooltip, PRODUCT_NAME)
   assert.equal(state.quits, 0, 'the app goes on')
 })
 

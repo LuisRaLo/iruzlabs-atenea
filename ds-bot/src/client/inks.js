@@ -1,5 +1,6 @@
 // Inks (light, dark) for characters, names, and mentions.
 export const INKS = {
+  iruz: ['#0891B2', '#00C8FF'], atenea: ['#00C8FF', '#0891B2'],
   deepseek: ['#4D6BFE', '#6A84FF'], charcoal: ['#141416', '#F1F2F4'], graphite: ['#2D2D2D', '#D6D6DA'],
   rose: ['#EC2F6B', '#FF5A7A'], sky: ['#0AA8D6', '#2EE6E0'], tangerine: ['#FF6900', '#FF8A2E'],
   cobalt: ['#082DFF', '#5C78FF'],
@@ -10,8 +11,11 @@ export const INKS = {
 }
 // Gradient colors paint a character from its top left to its bottom right; their ink
 // above is the text color. Aurora is the first star mascot's gradient.
-export const GRADIENTS = { aurora: [[0, '#A4FFB0'], [0.42, '#00F0E4'], [1, '#2E9EF7']] }
-export const ACCENT_INKS = ['deepseek', 'charcoal', 'graphite', 'rose', 'sky', 'tangerine', 'cobalt']
+export const GRADIENTS = {
+  iruz: [[0, '#00C8FF'], [0.5, '#0891B2'], [1, '#0A4A6A']],
+  aurora: [[0, '#A4FFB0'], [0.42, '#00F0E4'], [1, '#2E9EF7']],
+}
+export const ACCENT_INKS = ['iruz', 'atenea', 'deepseek', 'charcoal', 'graphite', 'rose', 'sky', 'tangerine', 'cobalt']
 // Renamed ink ids still found in saved Bots and Bot-to-Bot replies (LEGACY: old id → new id).
 const LEGACY_INKS = { kimi: 'charcoal', zai: 'graphite', minimax: 'rose', stepfun: 'sky', mimo: 'tangerine', qwen: 'cobalt' }
 export const isHex = color => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)

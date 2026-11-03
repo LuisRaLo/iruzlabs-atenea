@@ -7,12 +7,12 @@ import { spawnSync } from 'node:child_process'
 import { test } from 'node:test'
 import { parse } from 'yaml'
 import { UUID } from 'builder-util-runtime'
-import { APP_ID, configureIdentity, LEGACY_ARTIFACT_PREFIX, LEGACY_PRODUCT_NAME } from '../src/legacy.mjs'
+import { APP_ID, configureIdentity, LEGACY_ARTIFACT_PREFIX, LEGACY_PRODUCT_NAME, PRODUCT_NAME } from '../src/legacy.mjs'
 
 function fixture({ saved = [], packaged = true } = {}) {
   const app = new EventEmitter()
   const appData = join(tmpdir(), 'dsbot-identity-fixture')
-  const current = join(appData, 'DS Bot')
+  const current = join(appData, PRODUCT_NAME)
   const legacy = join(appData, LEGACY_PRODUCT_NAME)
   const paths = { appData, userData: current }
   const names = []
@@ -41,7 +41,7 @@ for (const platform of ['win32', 'darwin', 'linux']) {
     } else {
       assert.deepEqual(f.names, [LEGACY_PRODUCT_NAME])
       f.app.emit('ready')
-      assert.deepEqual(f.names, [LEGACY_PRODUCT_NAME, 'DS Bot'])
+      assert.deepEqual(f.names, [LEGACY_PRODUCT_NAME, PRODUCT_NAME])
     }
   })
 }

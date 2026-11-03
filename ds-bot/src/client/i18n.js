@@ -528,6 +528,18 @@ const ZH = {
   '{n} d': '{n} 天',
 
   // Plugin updates
+  'Atenea {version} is available': 'Atenea {version} 可以更新',
+  'Updating Atenea…': '正在更新 Atenea…',
+  'Atenea {version} is installed. Restart DSH to use it.': 'Atenea {version} 已安装，重启 DSH 后生效',
+  'Atenea {version} is installed.': 'Atenea {version} 已安装。',
+  'Atenea update': 'Atenea 更新',
+  'Atenea {version}': 'Atenea {version}',
+  'Restart DSH to start using Atenea {version}.': '重启 DSH 后开始使用 Atenea {version}。',
+  'Update Atenea {version} first.': '先更新 Atenea {version}。',
+  'Updates come with the Atenea app.': '随 Atenea 应用一起更新。',
+  Atenea: 'Atenea',
+  'Star Atenea on GitHub': '在 GitHub 上给 Atenea 点 Star',
+  'If Atenea helps you, a star on GitHub helps more people find it.': '如果 Atenea 对你有用，欢迎在 GitHub 上点个 Star，让更多人看到它。',
   'DS Bot {version} is available': 'DS Bot {version} 可以更新',
   'Updating DS Bot…': '正在更新 DS Bot…',
   'DS Bot {version} is installed. Restart DSH to use it.': 'DS Bot {version} 已安装，重启 DSH 后生效',
